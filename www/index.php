@@ -1,17 +1,5 @@
 <?php
 
-async function loadVersion() {
-	try {
-		const response = await fetch('version.json');
-		if (!response.ok) throw new Error('Не удалось загрузить данные версии');
-		const data = await response.json();
-		document.getElementById('appVersion').textContent = data.version;
-	} catch (err) {
-		console.error('Ошибка загрузки версии:', err);
-		document.getElementById('appVersion').textContent = 'Неизвестно';
-	}
-}
-
 date_default_timezone_set('Europe/Moscow');
 require_once 'config.php';
 
@@ -256,6 +244,19 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Система управления бэкапами</title>
 	<link rel="stylesheet" href="style.css">
+	<script>
+		async function loadVersion() {
+			try {
+				const response = await fetch('version.json');
+				if (!response.ok) throw new Error('Не удалось загрузить данные версии');
+				const data = await response.json();
+				document.getElementById('appVersion').textContent = data.version;
+			} catch (err) {
+				console.error('Ошибка загрузки версии:', err);
+				document.getElementById('appVersion').textContent = 'Неизвестно';
+			}
+		}
+	</script>
 </head>
 <body>
 	<div class="container">
