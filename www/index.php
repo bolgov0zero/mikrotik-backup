@@ -256,6 +256,9 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 				document.getElementById('appVersion').textContent = 'Неизвестно';
 			}
 		}
+		
+		// Автоматически загружаем версию при загрузке скрипта
+		loadVersion();
 	</script>
 </head>
 <body>
