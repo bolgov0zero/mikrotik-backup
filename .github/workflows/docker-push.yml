@@ -40,11 +40,13 @@ jobs:
 	  - name: Send Telegram notification
 		uses: up9cloud/action-notify@master
 		env:
-		  GITHUB_JOB_STATUS: ${{ needs.build-and-push.result }}
 		  TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
 		  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 		  TELEGRAM_TEMPLATE_CONTENT: |
-			Публикация образа Mikrotik Backup завершёна!
+			Публикация образа Mikrotik Backup завершена!
 			Статус: ${{ needs.build-and-push.result == 'success' && 'Успех' || needs.build-and-push.result == 'failure' && 'Ошибка' || 'Отмена' }}
-			Коммит: ${{ github.event.head_commit.message }}
+			Ветка: ${{ github.ref_name }}
 			Версия: ${{ github.ref_name == 'master' && 'latest' || 'dev' }}
+			Коммит: ${{ github.event.head_commit.message }}
+			Автор: ${{ github.actor }}
+			Ссылка: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
