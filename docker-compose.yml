@@ -1,7 +1,7 @@
 services:
   mikrotik-backup:
     image: olgov0zero/mikrotik-backup:latest
-    name: mikrotik-backup
+    container_name: mikrotik-backup
     ports:
       - "80:80"
     volumes:

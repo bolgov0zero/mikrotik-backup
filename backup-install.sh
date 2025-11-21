@@ -1,0 +1,209 @@
+#!/bin/bash
+
+clear
+echo ""
+echo -e "\e[33m================================================\e[0m"
+echo -e "\e[33mMikrotik Backup - Система резервного копирования\e[0m"
+echo -e "\e[33m================================================\e[0m"
+echo ""
+
+# Этап 0: Установка Docker и Docker Compose (если не установлено)
+sleep 1
+if command -v docker &> /dev/null && docker compose version &> /dev/null; then
+    echo -e "\e[32m[✓]\e[0m Docker и Docker Compose уже установлены."
+else
+    echo -ne "[ ] Установка Docker и Docker Compose.\r"
+    
+    apt update > /dev/null 2>&1
+    apt install -y curl unzip jq > /dev/null 2>&1
+    curl -sSL https://get.docker.com/ | CHANNEL=stable sh > /dev/null 2>&1
+    systemctl enable --now docker > /dev/null 2>&1
+    curl -sL https://github.com/docker/compose/releases/download/v$(curl -Ls https://www.servercow.de/docker-compose/latest.php)/docker-compose-$(uname -s)-$(uname -m) > /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+    
+    if [ $? -eq 0 ] && command -v docker &> /dev/null && docker compose version &> /dev/null; then
+        sleep 2
+        echo -e "\e[32m[✓]\e[0m Установка Docker и Docker Compose."
+    else
+        echo -e "\e[31m[✗]\e[0m Установка Docker и Docker Compose. Не удалось установить."
+        exit 1
+    fi
+fi
+
+# Этап 1: Установка Mikrotik Backup
+sleep 1
+echo -ne "[ ] Подготовка к запуску.\r"
+mkdir backup && cd backup
+cat << EOF > docker-compose.yml
+services:
+  mikrotik-backup:
+    image: olgov0zero/mikrotik-backup:latest
+    container_name: mikrotik-backup
+    ports:
+      - "80:80"
+    volumes:
+      - backup_data:/var/www/html/backup
+      - db_data:/var/www/html/db
+    restart: unless-stopped
+
+volumes:
+  backup_data:
+  db_data:
+EOF
+sleep 2
+if [ $? -eq 0 ]; then
+    echo -e "\e[32m[✓]\e[0m Подготовка к запуску."
+else
+    echo -e "\e[31m[✗]\e[0m Подготовка к запуску."
+    exit 1
+fi
+
+# Запускаем docker-compose
+sleep 1
+echo -ne "[ ] Запуск Mikrotik Backup.\r"
+docker-compose up -d > /dev/null 2>&1
+docker-compose restart > /dev/null 2>&1
+
+if [ $? -eq 0 ]; then
+    echo -e "\e[32m[✓]\e[0m Запуск Mikrotik Backup."
+else
+    echo -e "\e[31m[✗]\e[0m Запуск Mikrotik Backup. Ошибка: Не удалось запустить docker-compose."
+    exit 1
+fi
+
+# Этап 2: Создание скрипта управления 'backup' (без sudo, в ~/bin)
+sleep 1
+echo -ne "[ ] Установка скрипта 'backup'.\r"
+# Создаём директорию ~/bin, если её нет
+mkdir -p ~/bin
+# Создаём файл ~/bin/backup
+cat << 'EOF' > ~/bin/backup
+#!/bin/bash
+
+# Скрипт управления Mikrotik Backup
+
+# Получаем путь к директории backup (предполагаем, что она в домашней директории пользователя)
+BACKUP_DIR="$HOME/backup"
+
+if [ ! -d "$BACKUP_DIR" ]; then
+    echo "Ошибка: Директория $BACKUP_DIR не найдена. Укажите правильный путь или запустите из установки."
+    exit 1
+fi
+
+cd "$BACKUP_DIR" || {
+    echo "Ошибка: Не удалось перейти в директорию backup"
+    exit 1
+}
+
+clear
+echo -e "\e[33m================\e[0m"
+echo -e "\e[33mСкрипт Mikrotik Backup\e[0m"
+echo -e "\e[33m================\e[0m"
+echo ""
+if docker ps | grep -q "Up"; then > /dev/null 2>&1
+    echo -e "Статус: \e[32m[✓] работает\e[0m"
+else
+    echo -e "Статус: \e[31m[✗] не работает\e[0m"
+fi
+# Получаем IP хоста
+HOST_IP=$(hostname -I | awk '{print $1}')
+# Получаем удалённую версию из version_info.json
+REMOTE_VERSION=$(curl -s https://raw.githubusercontent.com/bolgov0zero/mikrotik-backup/refs/heads/main/version.json | jq -r '.version')
+# Получаем локальную версию из version_info.json, игнорируя ошибки сертификата
+LOCAL_VERSION=$(curl -s -k https://${HOST_IP}/version.json | jq -r '.version')
+if [ -n "$REMOTE_VERSION" ] && [ -n "$LOCAL_VERSION" ]; then
+    if [ "$LOCAL_VERSION" = "$REMOTE_VERSION" ]; then
+        echo -e "Версия: \e[32m[✓] актуальна ($LOCAL_VERSION)\e[0m"
+    else
+        echo -e "Версия: \e[33m[!] доступно обновление ($REMOTE_VERSION)\e[0m"
+    fi
+else
+    echo -e "Версия: \e[31m[✗] не удалось проверить версию\e[0m"
+fi
+HOST_IP=$(hostname -I | awk '{print $1}')
+echo ""
+echo "1. Запустить Mikrotik Backup"
+echo "2. Перезапустить Mikrotik Backup"
+echo "3. Обновить Mikrotik Backup"
+echo -e "4. \e[31mЗавершить Mikrotik Backup\e[0m"
+echo ""
+echo -e "\e[32mПанель администратора:\e[0m https://${HOST_IP}/admin.html"
+echo -e "\e[33mИли нажмите Enter чтобы проверить обновления.\e[0m"
+read -p "Выберите опцию: " choice
+
+case $choice in
+    1)
+        clear
+        echo "Запуск Mikrotik Backup..."
+        docker-compose up -d > /dev/null 2>&1
+        echo "Запуск завершён!"
+        sleep 2
+        clear
+        backup
+        ;;
+    2)
+        clear
+        echo "Перезапуск Mikrotik Backup..."
+        docker-compose restart > /dev/null 2>&1
+        echo "Перезапуск завершён!"
+        sleep 2
+        clear
+        backup
+        ;;
+    3)
+        clear
+        echo "Обновление Mikrotik Backup..."
+        docker-compose pull > /dev/null 2>&1
+        docker-compose up -d > /dev/null 2>&1
+        docker image prune -f > /dev/null 2>&1
+        echo "Обновление Mikrotik Backup завершено!"
+        sleep 2
+        clear
+        backup
+        ;;
+    4)
+        clear
+        echo "Завершение Mikrotik Backup..."
+        docker-compose down > /dev/null 2>&1
+        echo -e "\e[31mРабота Mikrotik Backup завершена!\e[0m"
+        sleep 2
+        clear
+        backup
+        ;;
+    *)
+        clear
+        backup
+        ;;
+esac
+EOF
+
+# Делаем исполняемым
+chmod +x ~/bin/backup
+
+# Добавляем ~/bin в PATH, если ещё не добавлено
+if [[ ":$PATH:" != *":$HOME/bin:"* ]]; then
+    echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+    # Обновляем PATH в текущей сессии
+    export PATH="$HOME/bin:$PATH"
+    # Подгружаем .bashrc в текущую сессию
+    source ~/.bashrc
+fi
+sleep 2
+if [ $? -eq 0 ]; then
+    echo -e "\e[32m[✓]\e[0m Установка скрипта 'backup'."
+else
+    echo -e "\e[31m[✗]\e[0m Установка скрипта 'backup'. Ошибка при создании файла."
+    exit 1
+fi
+sleep 2
+echo ""
+echo "Установка Mikrotik Backup завершена! 🎉"
+echo ""
+
+# Получаем IP-адрес хоста
+HOST_IP=$(hostname -I | awk '{print $1}')
+
+echo "Панель администратора: https://${HOST_IP}"
+echo ""
+echo "Перелогиньтесь в консоли и введите команду backup для доступа к скрипту."
+echo ""
