@@ -108,9 +108,9 @@ fi
 # Получаем IP хоста
 HOST_IP=$(hostname -I | awk '{print $1}')
 # Получаем удалённую версию из version_info.json
-REMOTE_VERSION=$(curl -s https://raw.githubusercontent.com/bolgov0zero/mikrotik-backup/refs/heads/main/version.json | jq -r '.version')
+REMOTE_VERSION=$(curl -s https://raw.githubusercontent.com/bolgov0zero/mikrotik-backup/refs/heads/master/version.json | jq -r '.version')
 # Получаем локальную версию из version_info.json, игнорируя ошибки сертификата
-LOCAL_VERSION=$(curl -s -k https://${HOST_IP}/version.json | jq -r '.version')
+LOCAL_VERSION=$(curl -s -k http://${HOST_IP}/version.json | jq -r '.version')
 if [ -n "$REMOTE_VERSION" ] && [ -n "$LOCAL_VERSION" ]; then
     if [ "$LOCAL_VERSION" = "$REMOTE_VERSION" ]; then
         echo -e "Версия: \e[32m[✓] актуальна ($LOCAL_VERSION)\e[0m"
@@ -127,7 +127,7 @@ echo "2. Перезапустить Mikrotik Backup"
 echo "3. Обновить Mikrotik Backup"
 echo -e "4. \e[31mЗавершить Mikrotik Backup\e[0m"
 echo ""
-echo -e "\e[32mПанель администратора:\e[0m https://${HOST_IP}/admin.html"
+echo -e "\e[32mПанель администратора:\e[0m http://${HOST_IP}"
 echo -e "\e[33mИли нажмите Enter чтобы проверить обновления.\e[0m"
 read -p "Выберите опцию: " choice
 
