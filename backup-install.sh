@@ -37,7 +37,7 @@ mkdir backup && cd backup
 cat << EOF > docker-compose.yml
 services:
   mikrotik-backup:
-    image: olgov0zero/mikrotik-backup:latest
+    image: bolgov0zero/mikrotik-backup:latest
     container_name: mikrotik-backup
     ports:
       - "80:80"
