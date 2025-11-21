@@ -1,7 +1,6 @@
 name: Mikrotik Backup Docker Builder
 
 on:
-  workflow_dispatch:
   push:
 	branches:
 	  - master
@@ -10,6 +9,7 @@ on:
 	  - 'www/**'
 	  - 'cronfile'
 	  - 'Dockerfile'
+  workflow_dispatch:   # ← просто отдельной строкой, без отступов и двоеточия после него
 
 jobs:
   build-and-push:
@@ -46,7 +46,7 @@ jobs:
 			Публикация образа Mikrotik Backup завершена!
 			Статус: ${{ needs.build-and-push.result == 'success' && 'Успех' || needs.build-and-push.result == 'failure' && 'Ошибка' || 'Отмена' }}
 			Ветка: ${{ github.ref_name }}
-			Версия: ${{ github.ref_name == 'master' && 'latest' || 'dev' }}
-			Коммит: ${{ github.event.head_commit.message }}
+			Тег: ${{ github.ref_name == 'master' && 'latest' || 'dev' }}
+			Коммит: ${{ github.event.head_commit.message || github.sha }}
 			Автор: ${{ github.actor }}
 			Ссылка: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
