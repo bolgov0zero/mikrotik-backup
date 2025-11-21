@@ -2,7 +2,7 @@
 // Устанавливаем временную зону сервера в самом начале
 date_default_timezone_set('Europe/Moscow');
 
-// Запускаем сессию только если она еще не запущена
+// Запускаем сессию только если она еще не запущена1
 if (session_status() == PHP_SESSION_NONE) {
 	session_start();
 }
