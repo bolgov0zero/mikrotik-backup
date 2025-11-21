@@ -866,3 +866,9 @@ body {
 .empty-state-compact p {
 	font-size: 0.8125rem;
 }
+
+.version_info {
+	border: 1px solid#333333;
+	border-radius: 8px;
+	background-color: #0f0f0f;
+}

@@ -1,4 +1,17 @@
 <?php
+
+async function loadVersion() {
+	try {
+		const response = await fetch('version.json');
+		if (!response.ok) throw new Error('Не удалось загрузить данные версии');
+		const data = await response.json();
+		document.getElementById('appVersion').textContent = data.version;
+	} catch (err) {
+		console.error('Ошибка загрузки версии:', err);
+		document.getElementById('appVersion').textContent = 'Неизвестно';
+	}
+}
+
 date_default_timezone_set('Europe/Moscow');
 require_once 'config.php';
 
@@ -285,8 +298,8 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 					</li>
 				</ul>
 			</nav>
-			<footer class="verion_info">
-				2025 © bolgov0zero | Версия: <span id="appVersion">Загрузка...</span>
+			<footer class="version_info">
+				<center>2025 © bolgov0zero<br/>Версия: <span id="appVersion">Загрузка...</span></center>
 			</footer>
 		</aside>
 
@@ -438,18 +451,6 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 	</div>
 
 	<script>
-		async function loadVersion() {
-			try {
-				const response = await fetch('version.json');
-				if (!response.ok) throw new Error('Не удалось загрузить данные версии');
-				const data = await response.json();
-				document.getElementById('appVersion').textContent = data.version;
-			} catch (err) {
-				console.error('Ошибка загрузки версии:', err);
-				document.getElementById('appVersion').textContent = 'Неизвестно';
-			}
-		}
-		
 		function openModal(modalId) {
 			document.getElementById(modalId).style.display = 'flex';
 		}
