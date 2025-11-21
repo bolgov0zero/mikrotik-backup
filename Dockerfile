@@ -34,6 +34,7 @@ RUN a2enmod rewrite
 
 # Копируем ВСЕ файлы приложения
 COPY www/ /var/www/html/
+COPY version.json /var/www/html/
 
 # Копируем cron задание
 COPY cronfile /etc/cron.d/backup-cron
