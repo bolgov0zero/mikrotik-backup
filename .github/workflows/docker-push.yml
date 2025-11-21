@@ -2,52 +2,52 @@ name: Mikrotik Backup Docker Builder
 
 on:
   push:
-	branches:
-	  - master
-	  - dev
-	paths:
-	  - 'www/**'
-	  - 'cronfile'
-	  - 'Dockerfile'
+  branches:
+	- master
+	- dev
+  paths:
+	- 'www/**'
+	- 'cronfile'
+	- 'Dockerfile'
   workflow_dispatch:
 
 jobs:
   build-and-push:
-	runs-on: ubuntu-latest
-	steps:
-	  - name: Checkout code
-		uses: actions/checkout@v3
+  runs-on: ubuntu-latest
+  steps:
+	- name: Checkout code
+	uses: actions/checkout@v3
 
-	  - name: Log in to Docker Hub
-		uses: docker/login-action@v2
-		with:
-		  username: ${{ secrets.DOCKER_USERNAME }}
-		  password: ${{ secrets.DOCKER_PASSWORD }}
+	- name: Log in to Docker Hub
+	uses: docker/login-action@v2
+	with:
+	  username: ${{ secrets.DOCKER_USERNAME }}
+	  password: ${{ secrets.DOCKER_PASSWORD }}
 
-	  - name: Build and push Docker image
-		uses: docker/build-push-action@v4
-		with:
-		  context: .
-		  push: true
-		  tags: |
-			${{ github.ref_name == 'master' && 'bolgov0zero/mikrotik-backup:latest' || 'bolgov0zero/mikrotik-backup:dev' }}
+	- name: Build and push Docker image
+	uses: docker/build-push-action@v4
+	with:
+	  context: .
+	  push: true
+	  tags: |
+	  ${{ github.ref_name == 'master' && 'bolgov0zero/mikrotik-backup:latest' || 'bolgov0zero/mikrotik-backup:dev' }}
 
   notify:
-	runs-on: ubuntu-latest
-	needs: build-and-push
-	if: always()
-	steps:
-	  - name: Send Telegram notification
-		uses: up9cloud/action-notify@master
-		env:
-		  TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-		  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-		  TELEGRAM_TEMPLATE_CONTENT: |
-			Публикация образа Mikrotik Backup завершена!
+  runs-on: ubuntu-latest
+  needs: build-and-push
+  if: always()
+  steps:
+	- name: Send Telegram notification
+	uses: up9cloud/action-notify@master
+	env:
+	  TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+	  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+	  TELEGRAM_TEMPLATE_CONTENT: |
+	  Публикация образа Mikrotik Backup завершена!
 
-			Статус: ${{ needs.build-and-push.result == 'success' && 'Успех' || 'Ошибка' }}
-			Ветка: ${{ github.ref_name }}
-			Тег: ${{ github.ref_name == 'master' && 'latest' || 'dev' }}
-			Коммит: ${{ github.event.head_commit.message || github.sha }}
-			Автор: ${{ github.actor }}
-			Ссылка: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
+	  Статус: ${{ needs.build-and-push.result == 'success' && 'Успех' || 'Ошибка' }}
+	  Ветка: ${{ github.ref_name }}
+	  Тег: ${{ github.ref_name == 'master' && 'latest' || 'dev' }}
+	  Коммит: ${{ github.event.head_commit.message || github.sha }}
+	  Автор: ${{ github.actor }}
+	  Ссылка: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
