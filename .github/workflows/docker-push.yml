@@ -9,7 +9,7 @@ on:
 	  - 'www/**'
 	  - 'cronfile'
 	  - 'Dockerfile'
-  workflow_dispatch:   # ← просто отдельной строкой, без отступов и двоеточия после него
+  workflow_dispatch:
 
 jobs:
   build-and-push:
@@ -44,7 +44,8 @@ jobs:
 		  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 		  TELEGRAM_TEMPLATE_CONTENT: |
 			Публикация образа Mikrotik Backup завершена!
-			Статус: ${{ needs.build-and-push.result == 'success' && 'Успех' || needs.build-and-push.result == 'failure' && 'Ошибка' || 'Отмена' }}
+
+			Статус: ${{ needs.build-and-push.result == 'success' && 'Успех' || 'Ошибка' }}
 			Ветка: ${{ github.ref_name }}
 			Тег: ${{ github.ref_name == 'master' && 'latest' || 'dev' }}
 			Коммит: ${{ github.event.head_commit.message || github.sha }}
