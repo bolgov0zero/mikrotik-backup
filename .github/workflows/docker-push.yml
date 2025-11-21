@@ -2,8 +2,12 @@ name: Mikrotik Backup Docker Builder
 
 on:
   workflow_dispatch:
+	branches:
+	  - master
   push:
-	branches: ['master', 'dev']
+	branches:
+	  - master
+	  - dev
 	paths:
 	  - 'www/**'
 	  - 'cronfile'
