@@ -1,0 +1,14 @@
+services:
+  mikrotik-backup:
+    image: olgov0zero/mikrotik-backup:latest
+    name: mikrotik-backup
+    ports:
+      - "80:80"
+    volumes:
+      - backup_data:/var/www/html/backup
+      - db_data:/var/www/html/db
+    restart: unless-stopped
+
+volumes:
+  backup_data:
+  db_data:

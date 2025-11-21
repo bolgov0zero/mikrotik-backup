@@ -1,0 +1,2 @@
+* * * * * www-data /usr/local/bin/php /var/www/html/scheduled_backup.php > /dev/null 2>&1
+
