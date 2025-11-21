@@ -1,6 +1,12 @@
 name: Mikrotik Backup Docker Builder
 
 on:
+  workflow_dispatch:
+  inputs:
+	branch:
+	  description: 'Branch to build from'
+	  default: 'master'
+	  required: true
   push:
 	branches: ['master', 'dev']
 	paths:
