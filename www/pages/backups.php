@@ -151,7 +151,7 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 		<?php endif; ?>
 	</div>
 	
-	<!-- Список бэкапов -->
+<!-- Список бэкапов -->
 	<div class="table-content" style="padding: 0;">
 		<?php while ($backup = $backups->fetchArray(SQLITE3_ASSOC)): ?>
 			<div class="backup-item">
@@ -182,15 +182,28 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 					$filePath = $backupPath . $backup['filename'];
 					if (file_exists($filePath)):
 					?>
-						<a href="<?= $filePath ?>" download class="btn btn-primary btn-xs" title="Скачать">
+						<!-- Кнопка просмотра (только для экспортов) -->
+						<?php if ($backup['type'] === 'config'): ?>
+							<button class="btn btn-outline btn-xs" onclick="viewBackupContent(<?= $backup['id'] ?>, '<?= htmlspecialchars($backup['filename']) ?>')" title="Просмотр">
+								<span class="icon icon-view"></span>
+							</button>
+						<?php else: ?>
+							<!-- Заглушка для выравнивания -->
+							<span style="display: inline-block; width: 32px; height: 1px;"></span>
+						<?php endif; ?>
+						
+						<a href="download_backup.php?id=<?= $backup['id'] ?>" 
+						   class="btn btn-primary btn-xs" 
+						   title="Скачать"
+						   onclick="trackDownload(<?= $backup['id'] ?>, '<?= htmlspecialchars($backup['filename']) ?>')">
 							<span class="icon icon-download"></span>
 						</a>
+						<button class="btn btn-danger btn-xs" onclick="deleteBackup(<?= $backup['id'] ?>, '<?= htmlspecialchars($backup['filename']) ?>')" title="Удалить">
+							<span class="icon icon-delete"></span>
+						</button>
 					<?php else: ?>
 						<span style="color: var(--danger); font-size: 0.6875rem;" title="Файл отсутствует">⚠️</span>
 					<?php endif; ?>
-					<button class="btn btn-danger btn-xs" onclick="deleteBackup(<?= $backup['id'] ?>, '<?= htmlspecialchars($backup['filename']) ?>')" title="Удалить">
-						<span class="icon icon-delete"></span>
-					</button>
 				</div>
 			</div>
 		<?php endwhile; ?>
@@ -241,6 +254,39 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 		</div>
 	</div>
 	<?php endif; ?>
+</div>
+
+<!-- Компактное модальное окно для просмотра содержимого -->
+<div id="viewBackupModal" class="modal">
+	<div class="modal-content modal-view-content">
+		<div class="modal-header">
+			<h3>Просмотр конфигурации</h3>
+			<button class="modal-close" onclick="closeModal('viewBackupModal')">×</button>
+		</div>
+		
+		<div class="file-info">
+			<div class="file-info-content">
+				<div class="file-details">
+					<div class="file-name" id="viewFileName"></div>
+					<div class="file-size" id="viewFileSize"></div>
+				</div>
+				<button class="btn btn-primary btn-sm" onclick="copyBackupContent()">
+					<span class="icon icon-copy"></span>
+					Копировать
+				</button>
+			</div>
+		</div>
+		
+		<div class="file-content-wrapper">
+			<pre id="backupContent" class="file-content"></pre>
+		</div>
+		
+		<div class="modal-footer">
+			<button class="btn btn-outline btn-sm" onclick="closeModal('viewBackupModal')">
+				Закрыть
+			</button>
+		</div>
+	</div>
 </div>
 
 <script>
@@ -344,5 +390,141 @@ function changePage(page) {
 	url.searchParams.set('page', 'backups');
 	url.searchParams.set('p', page);
 	window.location.href = url.toString();
+}
+
+// Функция для просмотра содержимого бэкапа
+function viewBackupContent(backupId, filename) {
+	// Показываем загрузку
+	document.getElementById('viewFileName').textContent = filename;
+	document.getElementById('viewFileSize').textContent = 'Загрузка...';
+	document.getElementById('backupContent').textContent = 'Загрузка содержимого...';
+	
+	// Открываем модальное окно
+	openModal('viewBackupModal');
+	
+	// Загружаем содержимое файла
+	fetch(`view_backup.php?id=${backupId}`)
+		.then(response => {
+			if (!response.ok) {
+				throw new Error('Ошибка загрузки файла');
+			}
+			return response.json();
+		})
+		.then(data => {
+			if (data.success) {
+				document.getElementById('viewFileSize').textContent = `Размер: ${formatFileSize(data.size)}`;
+				document.getElementById('backupContent').textContent = data.content;
+				
+				// Авто-скролл к началу после загрузки
+				setTimeout(() => {
+					const contentElement = document.getElementById('backupContent');
+					if (contentElement) {
+						contentElement.scrollTop = 0;
+					}
+				}, 100);
+			} else {
+				document.getElementById('viewFileSize').textContent = 'Ошибка';
+				document.getElementById('backupContent').textContent = 'Не удалось загрузить содержимое файла: ' + data.error;
+			}
+		})
+		.catch(error => {
+			document.getElementById('viewFileSize').textContent = 'Ошибка';
+			document.getElementById('backupContent').textContent = 'Ошибка загрузки: ' + error.message;
+		});
+}
+
+// Функция для копирования содержимого
+function copyBackupContent() {
+	const content = document.getElementById('backupContent').textContent;
+	navigator.clipboard.writeText(content).then(() => {
+		// Компактное уведомление об успешном копировании
+		const copyBtn = event.target;
+		const originalText = copyBtn.innerHTML;
+		copyBtn.innerHTML = '<span class="icon icon-check"></span>';
+		copyBtn.disabled = true;
+		
+		setTimeout(() => {
+			copyBtn.innerHTML = originalText;
+			copyBtn.disabled = false;
+		}, 1500);
+	}).catch(err => {
+		alert('Не удалось скопировать содержимое: ' + err);
+	});
+}
+
+// Функция для форматирования размера файла
+function formatFileSize(bytes) {
+	if (bytes === 0) return '0 Bytes';
+	const k = 1024;
+	const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function openModal(modalId) {
+	document.getElementById(modalId).style.display = 'flex';
+}
+
+function closeModal(modalId) {
+	document.getElementById(modalId).style.display = 'none';
+}
+
+// Функция для отслеживания скачивания и показа уведомления
+function trackDownload(backupId, filename) {
+	// Создаем уведомление о скачивании
+	showDownloadNotification(filename);
+	
+	// Дополнительная логика может быть добавлена здесь
+	// Например, отправка аналитики на сервер
+	
+	// Продолжаем стандартное скачивание
+	return true;
+}
+
+// Функция для показа уведомления о скачивании
+function showDownloadNotification(filename) {
+	// Создаем элемент уведомления
+	const notification = document.createElement('div');
+	notification.className = 'download-notification';
+	notification.innerHTML = `
+		<div class="download-notification-content">
+			<div class="download-notification-header">
+				<span class="icon icon-download" style="background-color: var(--success);"></span>
+				<span class="download-notification-title">Скачивание бэкапа</span>
+				<button class="download-notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+			</div>
+			<div class="download-notification-body">
+				<div class="download-file-info">
+					<strong>Файл:</strong> ${filename}
+				</div>
+				<div class="download-user-info">
+					<strong>Пользователь:</strong> <?= htmlspecialchars($_SESSION['username']) ?>
+				</div>
+				<div class="download-time-info">
+					<strong>Время:</strong> ${new Date().toLocaleTimeString()}
+				</div>
+			</div>
+		</div>
+	`;
+	
+	// Добавляем уведомление в контейнер
+	const container = document.getElementById('downloadNotifications') || createDownloadNotificationsContainer();
+	container.appendChild(notification);
+	
+	// Автоматически удаляем уведомление через 5 секунд
+	setTimeout(() => {
+		if (notification.parentElement) {
+			notification.remove();
+		}
+	}, 5000);
+}
+
+// Функция для создания контейнера уведомлений
+function createDownloadNotificationsContainer() {
+	const container = document.createElement('div');
+	container.id = 'downloadNotifications';
+	container.className = 'download-notifications-container';
+	document.body.appendChild(container);
+	return container;
 }
 </script>

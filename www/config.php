@@ -340,4 +340,17 @@ function createMassBackup($db) {
 		'processed_devices' => $processedDevices
 	];
 }
+
+// Функция для логирования скачивания бэкапа
+function logBackupDownload($db, $backupId, $username) {
+	// Получаем информацию о бэкапе
+	$stmt = $db->prepare('SELECT b.*, d.name as device_name FROM backups b LEFT JOIN devices d ON b.device_id = d.id WHERE b.id = ?');
+	$stmt->bindValue(1, $backupId, SQLITE3_INTEGER);
+	$backup = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
+	
+	if ($backup) {
+		$description = "Скачан бэкап: {$backup['filename']}";
+		logActivity($db, 'backup_download', $description, $backup['device_name'], $backup['filename']);
+	}
+}
 ?>

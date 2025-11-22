@@ -478,6 +478,9 @@ body {
 .backup-actions {
 	display: flex;
 	gap: 0.375rem;
+	align-items: center;
+	min-width: 120px;
+	justify-content: flex-end;
 }
 
 /* Badges */
@@ -505,6 +508,12 @@ body {
 	background: rgba(245, 50, 11, 0.1);
 	color: var(--danger);
 	border: 1px solid rgba(245, 50, 11, 0.2);
+}
+
+.badge-success {
+	background: rgba(11, 245, 96, 0.1);
+	color: var(--danger);
+	border: 1px solid rgba(11, 245, 96, 0.2);
 }
 
 /* Messages */
@@ -884,6 +893,19 @@ body {
 	color: white;
 }
 
+.filter-actions {
+	display: flex;
+	gap: 0.5rem;
+	height: 40px;
+}
+
+.filter-actions .btn {
+	height: 100%;
+	white-space: nowrap;
+	font-size: 0.8125rem;
+}
+
+/* Активные фильтры */
 .active-filters {
 	margin-top: 1rem;
 	padding-top: 1rem;
@@ -933,6 +955,63 @@ body {
 
 .active-filter button:hover {
 	background: rgba(255, 255, 255, 0.2);
+}
+
+/* Header с фильтрами на главной */
+.table-header .filter-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+.table-header .filter-label {
+	color: var(--text-secondary);
+	font-size: 0.8125rem;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.table-header .filter-select {
+	background: var(--bg-primary);
+	border: 1px solid var(--border-light);
+	border-radius: var(--radius-sm);
+	padding: 0.625rem 0.875rem;
+	color: var(--text-primary);
+	font-size: 0.875rem;
+	height: 40px;
+	min-width: 180px;
+	transition: all 0.2s ease;
+}
+
+.table-header .filter-select:focus {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.table-header .date-filter {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.table-header .date-input {
+	background: var(--bg-primary);
+	border: 1px solid var(--border-light);
+	border-radius: var(--radius-sm);
+	padding: 0.625rem 0.75rem;
+	color: var(--text-primary);
+	font-size: 0.875rem;
+	height: 40px;
+	width: 140px;
+	transition: all 0.2s ease;
+}
+
+.table-header .date-input:focus {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
 }
 
 /* Pagination */
@@ -1036,6 +1115,90 @@ body {
 	font-size: 0.8125rem;
 }
 
+/* Стили для модального окна просмотра с прокруткой */
+.modal-view-content {
+	max-width: 900px;
+	max-height: 85vh;
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+}
+
+.modal-view-content .modal-header {
+	padding: 1.25rem 1.5rem;
+	margin-bottom: 0;
+	border-bottom: 1px solid var(--border-light);
+	flex-shrink: 0;
+}
+
+.modal-view-content .modal-header h3 {
+	font-size: 1.125rem;
+	margin: 0;
+}
+
+.file-info {
+	padding: 0.75rem 1.5rem;
+	background: var(--bg-primary);
+	border-bottom: 1px solid var(--border-light);
+	flex-shrink: 0;
+}
+
+.file-info-content {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+}
+
+.file-details {
+	flex: 1;
+	min-width: 0;
+}
+
+.file-name {
+	font-weight: 600;
+	font-size: 0.875rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.file-size {
+	color: var(--text-secondary);
+	font-size: 0.75rem;
+	margin-top: 0.25rem;
+}
+
+.file-content-wrapper {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.file-content {
+	margin: 0;
+	padding: 1rem;
+	font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+	font-size: 0.75rem;
+	line-height: 1.3;
+	color: var(--text-primary);
+	background: var(--bg-primary);
+	overflow-x: auto;
+	overflow-y: auto;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+	flex: 1;
+	border: none;
+}
+
+.modal-view-content .modal-footer {
+	padding: 1rem 1.5rem;
+	border-top: 1px solid var(--border-light);
+	flex-shrink: 0;
+}
+
 /* Icons */
 .icon {
 	display: inline-block;
@@ -1074,6 +1237,25 @@ body {
 .icon-backup { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath fill-rule='evenodd' d='M15.22 6.268a.75.75 0 01.968-.432l5.942 2.28a.75.75 0 01.431.97l-2.28 5.941a.75.75 0 11-1.4-.537l1.63-4.251-1.086.483a11.2 11.2 0 00-5.45 5.174.75.75 0 01-1.199.19L9 12.31l-6.22 6.22a.75.75 0 11-1.06-1.06l6.75-6.75a.75.75 0 011.06 0l3.606 3.605a12.694 12.694 0 015.684-4.973l1.086-.484-4.251-1.631a.75.75 0 01-.432-.97z' clip-rule='evenodd' /%3E%3C/svg%3E"); }
 .icon-mass-backup { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath fill-rule='evenodd' d='M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm4.28 10.28a.75.75 0 000-1.06l-3-3a.75.75 0 10-1.06 1.06l1.72 1.72H8.25a.75.75 0 000 1.5h5.69l-1.72 1.72a.75.75 0 101.06 1.06l3-3z' clip-rule='evenodd' /%3E%3C/svg%3E"); }
 
+/* Иконка просмотра */
+.icon-view { 
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a0a0a0'%3E%3Cpath d='M12 15a3 3 0 100-6 3 3 0 000 6z' /%3E%3Cpath fill-rule='evenodd' d='M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z' clip-rule='evenodd' /%3E%3C/svg%3E"); 
+}
+
+.btn-outline:hover .icon-view {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 15a3 3 0 100-6 3 3 0 000 6z' /%3E%3Cpath fill-rule='evenodd' d='M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z' clip-rule='evenodd' /%3E%3C/svg%3E");
+}
+
+/* Иконка копирования */
+.icon-copy { 
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath fill-rule='evenodd' d='M10.5 3A1.501 1.501 0 009 4.5h6A1.5 1.5 0 0013.5 3h-3zm-2.693.178A3 3 0 0110.5 1.5h3a3 3 0 012.694 1.678c.497.042.992.092 1.486.15 1.497.173 2.57 1.46 2.57 2.929V19.5a3 3 0 01-3 3H6.75a3 3 0 01-3-3V6.257c0-1.47 1.073-2.756 2.57-2.93.493-.057.989-.107 1.487-.15z' clip-rule='evenodd' /%3E%3C/svg%3E"); 
+}
+
+/* Иконка галочки */
+.icon-check { 
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath fill-rule='evenodd' d='M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z' clip-rule='evenodd' /%3E%3C/svg%3E"); 
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
 	.sidebar {
@@ -1091,6 +1273,29 @@ body {
 	
 	.filter-select {
 		min-width: 180px;
+	}
+	
+	.table-header {
+		flex-direction: column;
+		gap: 1rem;
+		align-items: flex-start;
+	}
+	
+	.table-header > div {
+		width: 100%;
+	}
+	
+	.table-header .filter-group {
+		width: 100%;
+	}
+	
+	.table-header .filter-select {
+		min-width: auto;
+		width: 100%;
+	}
+	
+	.table-header .date-input {
+		width: 100%;
 	}
 }
 
@@ -1135,12 +1340,6 @@ body {
 		grid-template-columns: 1fr;
 	}
 	
-	.table-header {
-		flex-direction: column;
-		gap: 1rem;
-		align-items: flex-start;
-	}
-	
 	.filters-panel {
 		padding: 1rem;
 	}
@@ -1162,5 +1361,142 @@ body {
 	
 	.date-input {
 		width: 100%;
+	}
+	
+	.filter-actions {
+		justify-content: stretch;
+	}
+	
+	.filter-actions .btn {
+		flex: 1;
+	}
+}
+
+/* Стили для уведомлений о скачивании */
+.download-notifications-container {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+	z-index: 10000;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	max-width: 400px;
+}
+
+.download-notification {
+	background: var(--bg-card);
+	border: 1px solid var(--border-light);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow-lg);
+	animation: slideInRight 0.3s ease-out;
+	overflow: hidden;
+}
+
+.download-notification-content {
+	padding: 0;
+}
+
+.download-notification-header {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 1rem 1.25rem;
+	background: var(--success);
+	color: white;
+	font-weight: 600;
+	font-size: 0.875rem;
+}
+
+.download-notification-header .icon {
+	background-color: white !important;
+	border-radius: 4px;
+	padding: 2px;
+}
+
+.download-notification-close {
+	background: none;
+	border: none;
+	color: white;
+	font-size: 1.25rem;
+	cursor: pointer;
+	margin-left: auto;
+	padding: 0;
+	width: 20px;
+	height: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 3px;
+	transition: background 0.2s ease;
+}
+
+.download-notification-close:hover {
+	background: rgba(255, 255, 255, 0.2);
+}
+
+.download-notification-body {
+	padding: 1.25rem;
+}
+
+.download-file-info,
+.download-user-info,
+.download-time-info {
+	margin-bottom: 0.5rem;
+	font-size: 0.875rem;
+	color: var(--text-primary);
+}
+
+.download-file-info strong,
+.download-user-info strong,
+.download-time-info strong {
+	color: var(--text-secondary);
+	font-weight: 600;
+}
+
+.download-file-info {
+	color: var(--accent);
+	font-weight: 600;
+}
+
+/* Анимация появления уведомления */
+@keyframes slideInRight {
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+/* Анимация исчезновения уведомления */
+.download-notification.fade-out {
+	animation: slideOutRight 0.3s ease-in forwards;
+}
+
+@keyframes slideOutRight {
+	from {
+		transform: translateX(0);
+		opacity: 1;
+	}
+	to {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+}
+
+/* Адаптивность для уведомлений */
+@media (max-width: 768px) {
+	.download-notifications-container {
+		top: 10px;
+		right: 10px;
+		left: 10px;
+		max-width: none;
+	}
+	
+	.download-notification {
+		max-width: 100%;
 	}
 }
