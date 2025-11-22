@@ -106,17 +106,12 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 				</div>
 			</div>
 
-			<!-- Кнопки управления -->
+			<!-- Кнопка сброса -->
 			<div class="filter-group">
 				<label class="filter-label" style="opacity: 0;">Действия</label>
-				<div class="filter-actions">
-					<button type="button" class="btn btn-primary btn-sm" onclick="applyFilters()">
-						Применить
-					</button>
-					<button type="button" class="btn btn-outline btn-sm" onclick="clearAllFilters()">
-						Сбросить
-					</button>
-				</div>
+				<button type="button" class="btn btn-outline btn-sm" onclick="clearAllFilters()" style="height: 40px; white-space: nowrap;">
+					Сбросить все
+				</button>
 			</div>
 		</div>
 
@@ -254,16 +249,19 @@ function setTypeFilter(type) {
 		btn.classList.remove('active');
 	});
 	event.target.classList.add('active');
-	
-	// Устанавливаем скрытое значение типа
-	document.getElementById('typeFilter').value = type;
 	applyFilters();
 }
 
 function applyFilters() {
 	const deviceId = document.getElementById('deviceFilter').value;
 	const date = document.getElementById('dateFilter').value;
-	const type = document.getElementById('typeFilter')?.value || 'all';
+	
+	// Получаем активный тип из кнопок
+	const activeTypeButton = document.querySelector('.btn-group .btn.active');
+	const type = activeTypeButton ? activeTypeButton.textContent.toLowerCase() : 'all';
+	const typeValue = type === 'все' ? 'all' : 
+					 type === 'бинарные' ? 'full' : 
+					 type === 'экспорт' ? 'config' : 'all';
 	
 	const url = new URL(window.location);
 	url.searchParams.set('page', 'backups');
@@ -275,10 +273,10 @@ function applyFilters() {
 		url.searchParams.set('device_id', deviceId);
 	}
 	
-	if (type === 'all') {
+	if (typeValue === 'all') {
 		url.searchParams.delete('type');
 	} else {
-		url.searchParams.set('type', type);
+		url.searchParams.set('type', typeValue);
 	}
 	
 	if (date) {
@@ -294,13 +292,17 @@ function applyFilters() {
 }
 
 function clearAllFilters() {
-	const url = new URL(window.location);
-	url.searchParams.set('page', 'backups');
-	url.searchParams.delete('device_id');
-	url.searchParams.delete('type');
-	url.searchParams.delete('date');
-	url.searchParams.delete('p');
-	window.location.href = url.toString();
+	// Сбрасываем UI элементы
+	document.getElementById('deviceFilter').value = 'all';
+	document.getElementById('dateFilter').value = '';
+	
+	// Сбрасываем кнопки типа
+	document.querySelectorAll('.btn-group .btn').forEach(btn => {
+		btn.classList.remove('active');
+	});
+	document.querySelector('.btn-group .btn:first-child').classList.add('active');
+	
+	applyFilters();
 }
 
 function clearDateFilter() {
@@ -315,12 +317,21 @@ function removeFilter(filterType) {
 	switch (filterType) {
 		case 'device':
 			url.searchParams.delete('device_id');
+			// Сбрасываем селектор в UI
+			document.getElementById('deviceFilter').value = 'all';
 			break;
 		case 'type':
 			url.searchParams.delete('type');
+			// Сбрасываем кнопки типа
+			document.querySelectorAll('.btn-group .btn').forEach(btn => {
+				btn.classList.remove('active');
+			});
+			document.querySelector('.btn-group .btn:first-child').classList.add('active');
 			break;
 		case 'date':
 			url.searchParams.delete('date');
+			// Сбрасываем поле даты
+			document.getElementById('dateFilter').value = '';
 			break;
 	}
 	
@@ -334,7 +345,4 @@ function changePage(page) {
 	url.searchParams.set('p', page);
 	window.location.href = url.toString();
 }
-
-// Скрытый элемент для хранения типа фильтра
-document.write('<input type="hidden" id="typeFilter" value="<?= $filterType ?>">');
 </script>

@@ -884,18 +884,6 @@ body {
 	color: white;
 }
 
-.filter-actions {
-	display: flex;
-	gap: 0.5rem;
-	height: 40px;
-}
-
-.filter-actions .btn {
-	height: 100%;
-	white-space: nowrap;
-	font-size: 0.8125rem;
-}
-
 .active-filters {
 	margin-top: 1rem;
 	padding-top: 1rem;
@@ -1174,13 +1162,5 @@ body {
 	
 	.date-input {
 		width: 100%;
-	}
-	
-	.filter-actions {
-		justify-content: stretch;
-	}
-	
-	.filter-actions .btn {
-		flex: 1;
 	}
 }
