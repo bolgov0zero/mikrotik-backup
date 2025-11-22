@@ -289,47 +289,49 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 	<div class="container">
 <!-- Боковая панель -->
 	<aside class="sidebar">
-		<div class="logo">
-			<h1>Бэкапы</h1>
+		<div class="sidebar-content">
+			<div class="logo">
+				<h1>Бэкапы</h1>
+			</div>
+			<nav>
+				<ul class="nav-menu">
+					<li class="nav-item">
+						<a href="?page=dashboard" class="nav-link <?= $page === 'dashboard' ? 'active' : '' ?>">
+							<span class="icon icon-dashboard"></span>
+							Главная
+						</a>
+					</li>
+					<li class="nav-item">
+						<a href="?page=devices" class="nav-link <?= $page === 'devices' ? 'active' : '' ?>">
+							<span class="icon icon-devices"></span>
+							Устройства
+						</a>
+					</li>
+					<li class="nav-item">
+						<a href="?page=backups" class="nav-link <?= $page === 'backups' ? 'active' : '' ?>">
+							<span class="icon icon-backups"></span>
+							Бэкапы
+						</a>
+					</li>
+					<li class="nav-item">
+						<a href="?page=settings" class="nav-link <?= $page === 'settings' ? 'active' : '' ?>">
+							<span class="icon icon-settings"></span>
+							Настройки
+						</a>
+					</li>
+					<li class="nav-item">
+						<a href="?action=logout" class="nav-link">
+							<span class="icon icon-logout"></span>
+							Выход
+						</a>
+					</li>
+				</ul>
+			</nav>
 		</div>
-		<nav>
-			<ul class="nav-menu">
-				<li class="nav-item">
-					<a href="?page=dashboard" class="nav-link <?= $page === 'dashboard' ? 'active' : '' ?>">
-						<span class="icon icon-dashboard"></span>
-						Главная
-					</a>
-				</li>
-				<li class="nav-item">
-					<a href="?page=devices" class="nav-link <?= $page === 'devices' ? 'active' : '' ?>">
-						<span class="icon icon-devices"></span>
-						Устройства
-					</a>
-				</li>
-				<li class="nav-item">
-					<a href="?page=backups" class="nav-link <?= $page === 'backups' ? 'active' : '' ?>">
-						<span class="icon icon-backups"></span>
-						Бэкапы
-					</a>
-				</li>
-				<li class="nav-item">
-					<a href="?page=settings" class="nav-link <?= $page === 'settings' ? 'active' : '' ?>">
-						<span class="icon icon-settings"></span>
-						Настройки
-					</a>
-				</li>
-				<li class="nav-item">
-					<a href="?action=logout" class="nav-link">
-						<span class="icon icon-logout"></span>
-						Выход
-					</a>
-				</li>
-			</ul>
-		</nav>
 		
-		<!-- Обновленный блок версии -->
+		<!-- Блок версии и копирайта -->
 		<div class="sidebar-footer">
-			<div class="version-card">
+			<div class="footer-card">
 				<div class="version-info">
 					Версия: <span class="version-number" id="appVersion">Загрузка...</span>
 				</div>
