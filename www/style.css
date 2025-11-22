@@ -510,6 +510,12 @@ body {
 	border: 1px solid rgba(245, 50, 11, 0.2);
 }
 
+.badge-success {
+	background: rgba(11, 245, 96, 0.1);
+	color: var(--danger);
+	border: 1px solid rgba(11, 245, 96, 0.2);
+}
+
 /* Messages */
 .error {
 	background: var(--danger);
