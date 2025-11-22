@@ -192,7 +192,7 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 						<span class="badge <?= 
 							strpos($activity['action_type'], 'error') !== false ? 'badge-warning' : 
 							(strpos($activity['action_type'], 'delete') !== false ? 'badge-danger' : 
-							(strpos($activity['action_type'], 'download') !== false ? 'badge-success' : 'badge-primary'))
+							(strpos($activity['action_type'], 'download') !== false ? 'badge-primary' : 'badge-success'))
 						?>">
 							<?= match($activity['action_type']) {
 								'device_add' => 'Добавление устройства',
