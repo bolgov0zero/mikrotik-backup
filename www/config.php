@@ -80,11 +80,14 @@ function initDatabase() {
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	)');
 	
-	// Добавляем пользователя по умолчанию если его нет
-	$stmt = $db->prepare('INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)');
-	$stmt->bindValue(1, 'admin', SQLITE3_TEXT);
-	$stmt->bindValue(2, password_hash('admin', PASSWORD_DEFAULT), SQLITE3_TEXT);
-	$stmt->execute();
+	// Добавляем пользователя по умолчанию только если таблица пользователей пустая
+	$userCount = $db->querySingle('SELECT COUNT(*) FROM users');
+	if ($userCount == 0) {
+		$stmt = $db->prepare('INSERT INTO users (username, password) VALUES (?, ?)');
+		$stmt->bindValue(1, 'admin', SQLITE3_TEXT);
+		$stmt->bindValue(2, password_hash('admin', PASSWORD_DEFAULT), SQLITE3_TEXT);
+		$stmt->execute();
+	}
 	
 	// Добавляем настройки по умолчанию
 	$defaultSettings = [
