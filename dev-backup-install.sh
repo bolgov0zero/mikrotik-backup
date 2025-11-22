@@ -76,7 +76,7 @@ fi
 sleep 1
 echo -ne "[ ] Установка скрипта 'backup'.\r"
 # Создаём директорию ~/bin, если её нет
-ln -s /var/lib/docker/volumes/backup_data/_data ./backups
+ln -s /var/lib/docker/volumes/backup_backup_data/_data ./backups
 mkdir -p ~/bin
 # Создаём файл ~/bin/backup
 cat << 'EOF' > ~/bin/backup
