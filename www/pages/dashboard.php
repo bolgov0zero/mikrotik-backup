@@ -82,21 +82,21 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 					<?php while ($type = $activityTypes->fetchArray(SQLITE3_ASSOC)): ?>
 						<option value="<?= $type['action_type'] ?>" <?= $filterActivityType == $type['action_type'] ? 'selected' : '' ?>>
 							<?= match($type['action_type']) {
-								'device_add' => 'Добавление устройств',
-								'device_delete' => 'Удаление устройств',
-								'backup_create' => 'Создание бэкапов',
-								'backup_delete' => 'Удаление бэкапов',
-								'backup_download' => 'Скачивание бэкапов',
-								'connection_test' => 'Тесты подключения',
-								'connection_error' => 'Ошибки подключения',
-								'password_change' => 'Смена паролей',
-								'user_add' => 'Добавление пользователей',
-								'user_delete' => 'Удаление пользователей',
-								'backup_error' => 'Ошибки бэкапов',
-								'scheduled_backup' => 'Автоматические бэкапы',
-								'scheduled_backup_error' => 'Ошибки автобэкапов',
+								'device_add' => 'Добавление устройства',
+								'device_delete' => 'Удаление устройства',
+								'backup_create' => 'Создание бэкапа',
+								'backup_delete' => 'Удаление бэкапа',
+								'backup_download' => 'Скачивание бэкапа',
+								'connection_test' => 'Тест подключения',
+								'connection_error' => 'Ошибка подключения',
+								'password_change' => 'Смена пароля',
+								'user_add' => 'Добавление пользователя',
+								'user_delete' => 'Удаление пользователя',
+								'backup_error' => 'Ошибка бэкапа',
+								'scheduled_backup' => 'Автоматический бэкап',
+								'scheduled_backup_error' => 'Ошибка автобэкапа',
 								'schedule_update' => 'Обновление расписания',
-								'mass_backup' => 'Массовые бэкапы',
+								'mass_backup' => 'Массовый бэкап',
 								default => $type['action_type']
 							} ?>
 						</option>
@@ -136,21 +136,21 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 				<?php if ($filterActivityType !== 'all'): ?>
 					<span class="active-filter">
 						Тип: <?= match($filterActivityType) {
-							'device_add' => 'Добавление устройств',
-							'device_delete' => 'Удаление устройств',
-							'backup_create' => 'Создание бэкапов',
-							'backup_delete' => 'Удаление бэкапов',
-							'backup_download' => 'Скачивание бэкапов',
-							'connection_test' => 'Тесты подключения',
-							'connection_error' => 'Ошибки подключения',
-							'password_change' => 'Смена паролей',
-							'user_add' => 'Добавление пользователей',
-							'user_delete' => 'Удаление пользователей',
-							'backup_error' => 'Ошибки бэкапов',
-							'scheduled_backup' => 'Автоматические бэкапы',
-							'scheduled_backup_error' => 'Ошибки автобэкапов',
+							'device_add' => 'Добавление устройства',
+							'device_delete' => 'Удаление устройства',
+							'backup_create' => 'Создание бэкапа',
+							'backup_delete' => 'Удаление бэкапа',
+							'backup_download' => 'Скачивание бэкапа',
+							'connection_test' => 'Тест подключения',
+							'connection_error' => 'Ошибка подключения',
+							'password_change' => 'Смена пароля',
+							'user_add' => 'Добавление пользователя',
+							'user_delete' => 'Удаление пользователя',
+							'backup_error' => 'Ошибка бэкапа',
+							'scheduled_backup' => 'Автоматический бэкап',
+							'scheduled_backup_error' => 'Ошибка автобэкапа',
 							'schedule_update' => 'Обновление расписания',
-							'mass_backup' => 'Массовые бэкапы',
+							'mass_backup' => 'Массовый бэкап',
 							default => $filterActivityType
 						} ?>
 						<button type="button" onclick="removeActivityFilter('type')">×</button>
@@ -195,21 +195,21 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 							(strpos($activity['action_type'], 'download') !== false ? 'badge-success' : 'badge-primary'))
 						?>">
 							<?= match($activity['action_type']) {
-								'device_add' => 'Добавление устройств',
-								'device_delete' => 'Удаление устройств',
-								'backup_create' => 'Создание бэкапов',
-								'backup_delete' => 'Удаление бэкапов',
-								'backup_download' => 'Скачивание бэкапов',
-								'connection_test' => 'Тесты подключения',
-								'connection_error' => 'Ошибки подключения',
-								'password_change' => 'Смена паролей',
-								'user_add' => 'Добавление пользователей',
-								'user_delete' => 'Удаление пользователей',
-								'backup_error' => 'Ошибки бэкапов',
-								'scheduled_backup' => 'Автоматические бэкапы',
-								'scheduled_backup_error' => 'Ошибки автобэкапов',
+								'device_add' => 'Добавление устройства',
+								'device_delete' => 'Удаление устройства',
+								'backup_create' => 'Создание бэкапа',
+								'backup_delete' => 'Удаление бэкапа',
+								'backup_download' => 'Скачивание бэкапа',
+								'connection_test' => 'Тест подключения',
+								'connection_error' => 'Ошибка подключения',
+								'password_change' => 'Смена пароля',
+								'user_add' => 'Добавление пользователя',
+								'user_delete' => 'Удаление пользователя',
+								'backup_error' => 'Ошибка бэкапа',
+								'scheduled_backup' => 'Автоматический бэкап',
+								'scheduled_backup_error' => 'Ошибка автобэкапа',
 								'schedule_update' => 'Обновление расписания',
-								'mass_backup' => 'Массовые бэкапы',
+								'mass_backup' => 'Массовый бэкап',
 								default => $activity['action_type']
 							} ?>
 						</span>
