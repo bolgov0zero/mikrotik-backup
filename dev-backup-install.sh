@@ -206,7 +206,7 @@ echo ""
 # Получаем IP-адрес хоста
 HOST_IP=$(hostname -I | awk '{print $1}')
 
-echo "Панель администратора: https://${HOST_IP}"
+echo "Панель администратора: http://${HOST_IP}"
 echo ""
 echo "Перелогиньтесь в консоли и введите команду backup для доступа к скрипту."
 echo ""
