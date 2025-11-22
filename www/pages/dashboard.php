@@ -127,7 +127,7 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 		</div>
 	</div>
 
-	<!-- Активные фильтры -->
+<!-- Активные фильтры -->
 	<?php if ($filterActivityType !== 'all' || $filterActivityDate): ?>
 	<div class="active-filters">
 		<div class="active-filters-label">Активные фильтры:</div>
@@ -135,27 +135,27 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 			<?php if ($filterActivityType !== 'all'): ?>
 				<span class="active-filter">
 					Тип: <?= match($filterActivityType) {
-						'device_add' => 'Добавление устройства',
-						'device_delete' => 'Удаление устройства',
-						'backup_create' => 'Создание бэкапа',
-						'backup_delete' => 'Удаление бэкапа',
-						'backup_download' => 'Скачивание бэкапа',
-						'connection_test' => 'Тест подключения',
-						'connection_error' => 'Ошибка подключения',
+						'device_add' => 'Добавление устройств',
+						'device_delete' => 'Удаление устройств',
+						'backup_create' => 'Создание бэкапов',
+						'backup_delete' => 'Удаление бэкапов',
+						'backup_download' => 'Скачивание бэкапов',
+						'connection_test' => 'Тесты подключения',
+						'connection_error' => 'Ошибки подключения',
 						'password_change' => 'Смена паролей',
-						'user_add' => 'Добавление пользователя',
-						'user_delete' => 'Удаление пользователя',
-						'backup_error' => 'Ошибка бэкапа',
-						'scheduled_backup' => 'Автоматический бэкап',
-						'scheduled_backup_error' => 'Ошибки автобэкапа',
+						'user_add' => 'Добавление пользователей',
+						'user_delete' => 'Удаление пользователей',
+						'backup_error' => 'Ошибки бэкапов',
+						'scheduled_backup' => 'Автоматические бэкапы',
+						'scheduled_backup_error' => 'Ошибки автобэкапов',
 						'schedule_update' => 'Обновление расписания',
-						'mass_backup' => 'Массовый бэкап',
+						'mass_backup' => 'Массовые бэкапы',
 						default => $filterActivityType
 					} ?>
 					<button type="button" onclick="removeActivityFilter('type')">×</button>
 				</span>
 			<?php endif; ?>
-
+	
 			<?php if ($filterActivityDate): ?>
 				<span class="active-filter">
 					Дата: <?= htmlspecialchars($filterActivityDate) ?>
