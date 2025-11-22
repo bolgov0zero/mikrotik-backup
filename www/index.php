@@ -160,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			$massBackupResult = createMassBackup($db);
 			if ($massBackupResult['success']) {
 				$_SESSION['backup_success'] = $massBackupResult['message'];
-				logActivity($db, 'mass_backup', 'Массовое резервное копирование завершено.\nУспешно: ' . $massBackupResult['success_count'] . ', Ошибок: ' . $massBackupResult['error_count']);
+				logActivity($db, 'mass_backup', 'Массовое резервное копирование завершено. Успешно: ' . $massBackupResult['success_count'] . ', Ошибок: ' . $massBackupResult['error_count']);
 			} else {
 				$_SESSION['backup_error'] = 'Ошибка массового бэкапа: ' . $massBackupResult['error'];
 			}
