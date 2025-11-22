@@ -189,7 +189,7 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 							</button>
 						<?php else: ?>
 							<!-- Заглушка для выравнивания -->
-							<span style="display: inline-block; width: 32px; height: 1px;"></span>
+							<span style="display: inline-block; width: 40px; height: 1px;"></span>
 						<?php endif; ?>
 						
 						<a href="download_backup.php?id=<?= $backup['id'] ?>" 
