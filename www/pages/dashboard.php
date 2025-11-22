@@ -338,9 +338,59 @@ function changeActivityPage(page) {
 // Функция для отслеживания скачивания и показа уведомления
 function trackDownload(backupId, filename) {
 	// Создаем уведомление о скачивании
-	showNotification('success', 'Скачивание бэкапа', `Файл: ${filename}\nПользователь: <?= htmlspecialchars($_SESSION['username']) ?>\nВремя: ${new Date().toLocaleTimeString()}`);
+	showDownloadNotification(filename);
+	
+	// Дополнительная логика может быть добавлена здесь
+	// Например, отправка аналитики на сервер
 	
 	// Продолжаем стандартное скачивание
 	return true;
+}
+
+// Функция для показа уведомления о скачивании
+function showDownloadNotification(filename) {
+	// Создаем элемент уведомления
+	const notification = document.createElement('div');
+	notification.className = 'download-notification';
+	notification.innerHTML = `
+		<div class="download-notification-content">
+			<div class="download-notification-header">
+				<span class="icon icon-download" style="background-color: var(--success);"></span>
+				<span class="download-notification-title">Скачивание бэкапа</span>
+				<button class="download-notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+			</div>
+			<div class="download-notification-body">
+				<div class="download-file-info">
+					<strong>Файл:</strong> ${filename}
+				</div>
+				<div class="download-user-info">
+					<strong>Пользователь:</strong> <?= htmlspecialchars($_SESSION['username']) ?>
+				</div>
+				<div class="download-time-info">
+					<strong>Время:</strong> ${new Date().toLocaleTimeString()}
+				</div>
+			</div>
+		</div>
+	`;
+	
+	// Добавляем уведомление в контейнер
+	const container = document.getElementById('downloadNotifications') || createDownloadNotificationsContainer();
+	container.appendChild(notification);
+	
+	// Автоматически удаляем уведомление через 5 секунд
+	setTimeout(() => {
+		if (notification.parentElement) {
+			notification.remove();
+		}
+	}, 5000);
+}
+
+// Функция для создания контейнера уведомлений
+function createDownloadNotificationsContainer() {
+	const container = document.createElement('div');
+	container.id = 'downloadNotifications';
+	container.className = 'download-notifications-container';
+	document.body.appendChild(container);
+	return container;
 }
 </script>
