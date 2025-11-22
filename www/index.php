@@ -211,54 +211,70 @@ $deviceCount = $db->querySingle('SELECT COUNT(*) FROM devices');
 $backupCount = $db->querySingle('SELECT COUNT(*) FROM backups');
 $devices = $db->query('SELECT * FROM devices ORDER BY created_at DESC');
 
-// Получаем последние действия для главной страницы
-$recentActivities = getRecentActivities($db, 10);
-
 // Получаем настройки
 $backupScheduleTime = getSetting($db, 'backup_schedule_time', '02:00');
 
+// Для главной страницы - пагинация и фильтры
+if ($page === 'dashboard') {
+	$filterActivityType = $_GET['activity_type'] ?? 'all';
+	$filterActivityDate = $_GET['activity_date'] ?? '';
+	$pageNumber = max(1, intval($_GET['p'] ?? 1));
+}
+
 // Для страницы бэкапов - фильтрация по устройству и типу
-$filterDeviceId = $_GET['device_id'] ?? 'all';
-$filterType = $_GET['type'] ?? 'all';
-$pageNumber = max(1, intval($_GET['p'] ?? 1));
-$perPage = 10;
-$offset = ($pageNumber - 1) * $perPage;
+if ($page === 'backups') {
+	$filterDeviceId = $_GET['device_id'] ?? 'all';
+	$filterType = $_GET['type'] ?? 'all';
+	$filterDate = $_GET['date'] ?? '';
+	$pageNumber = max(1, intval($_GET['p'] ?? 1));
+	$perPage = 10;
+	$offset = ($pageNumber - 1) * $perPage;
 
-// Строим запрос с фильтрами
-$whereConditions = [];
-$params = [];
+	// Строим запрос с фильтрами
+	$whereConditions = [];
+	$params = [];
+	$paramTypes = [];
 
-if ($filterDeviceId !== 'all') {
-	$whereConditions[] = 'b.device_id = ?';
-	$params[] = $filterDeviceId;
+	if ($filterDeviceId !== 'all') {
+		$whereConditions[] = 'b.device_id = ?';
+		$params[] = $filterDeviceId;
+		$paramTypes[] = SQLITE3_INTEGER;
+	}
+
+	if ($filterType !== 'all') {
+		$whereConditions[] = 'b.type = ?';
+		$params[] = $filterType;
+		$paramTypes[] = SQLITE3_TEXT;
+	}
+
+	if ($filterDate) {
+		$whereConditions[] = "DATE(b.created_at) = ?";
+		$params[] = $filterDate;
+		$paramTypes[] = SQLITE3_TEXT;
+	}
+
+	$whereClause = $whereConditions ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+
+	// Получаем общее количество бэкапов для пагинации
+	$countQuery = "SELECT COUNT(*) FROM backups b $whereClause";
+	$stmt = $db->prepare($countQuery);
+	foreach ($params as $index => $value) {
+		$stmt->bindValue($index + 1, $value, $paramTypes[$index]);
+	}
+	$totalBackups = $stmt->execute()->fetchArray(SQLITE3_NUM)[0];
+	$totalPages = ceil($totalBackups / $perPage);
+
+	// Получаем бэкапы с пагинацией
+	$query = "SELECT b.*, d.name as device_name FROM backups b LEFT JOIN devices d ON b.device_id = d.id $whereClause ORDER BY b.created_at DESC LIMIT $perPage OFFSET $offset";
+	$stmt = $db->prepare($query);
+	foreach ($params as $index => $value) {
+		$stmt->bindValue($index + 1, $value, $paramTypes[$index]);
+	}
+	$backups = $stmt->execute();
+
+	// Получаем список устройств для фильтра
+	$allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 }
-
-if ($filterType !== 'all') {
-	$whereConditions[] = 'b.type = ?';
-	$params[] = $filterType;
-}
-
-$whereClause = $whereConditions ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
-
-// Получаем общее количество бэкапов для пагинации
-$countQuery = "SELECT COUNT(*) FROM backups b $whereClause";
-$stmt = $db->prepare($countQuery);
-foreach ($params as $index => $value) {
-	$stmt->bindValue($index + 1, $value, SQLITE3_TEXT);
-}
-$totalBackups = $stmt->execute()->fetchArray(SQLITE3_NUM)[0];
-$totalPages = ceil($totalBackups / $perPage);
-
-// Получаем бэкапы с пагинацией
-$query = "SELECT b.*, d.name as device_name FROM backups b LEFT JOIN devices d ON b.device_id = d.id $whereClause ORDER BY b.created_at DESC LIMIT $perPage OFFSET $offset";
-$stmt = $db->prepare($query);
-foreach ($params as $index => $value) {
-	$stmt->bindValue($index + 1, $value, SQLITE3_TEXT);
-}
-$backups = $stmt->execute();
-
-// Получаем список устройств для фильтра
-$allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 
 // Получаем информацию о текущем пользователе
 $currentUser = $_SESSION['username'];
@@ -596,47 +612,6 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 			form.submit();
 		}
 	
-		function changePage(page) {
-			const url = new URL(window.location);
-			const currentPage = url.searchParams.get('page') || 'dashboard';
-			url.searchParams.set('page', currentPage);
-			
-			if (currentPage === 'backups') {
-				url.searchParams.set('p', page);
-			}
-			window.location.href = url.toString();
-		}
-	
-		function changeTypeFilter(type) {
-			const url = new URL(window.location);
-			url.searchParams.set('page', 'backups');
-			if (type === 'all') {
-				url.searchParams.delete('type');
-			} else {
-				url.searchParams.set('type', type);
-			}
-			url.searchParams.delete('p');
-			window.location.href = url.toString();
-		}
-	
-		function filterBackups(deviceId) {
-			const url = new URL(window.location);
-			url.searchParams.set('page', 'backups');
-			if (deviceId === 'all') {
-				url.searchParams.delete('device_id');
-			} else {
-				url.searchParams.set('device_id', deviceId);
-			}
-			url.searchParams.delete('p');
-			window.location.href = url.toString();
-		}
-	
-		window.onclick = function(event) {
-			if (event.target.classList.contains('modal')) {
-				event.target.style.display = 'none';
-			}
-		}
-		
 		function selectBackupType(type) {
 			document.querySelectorAll('.radio-item').forEach(item => {
 				item.classList.remove('selected');
@@ -658,33 +633,32 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 			openModal('backupModal');
 		}
 
-		// Функции для календаря
-		function openCalendar(inputId) {
-			// Здесь будет реализация открытия календаря
-			console.log('Открыть календарь для:', inputId);
+		// Функция для копирования содержимого
+		function copyBackupContent() {
+			const content = document.getElementById('backupContent').textContent;
+			navigator.clipboard.writeText(content).then(() => {
+				// Компактное уведомление об успешном копировании
+				const copyBtn = event.target;
+				const originalText = copyBtn.innerHTML;
+				copyBtn.innerHTML = '<span class="icon icon-check"></span>';
+				copyBtn.disabled = true;
+				
+				setTimeout(() => {
+					copyBtn.innerHTML = originalText;
+					copyBtn.disabled = false;
+				}, 1500);
+			}).catch(err => {
+				alert('Не удалось скопировать содержимое: ' + err);
+			});
 		}
 
-		function applyDateFilter() {
-			const startDate = document.getElementById('startDate').value;
-			const endDate = document.getElementById('endDate').value;
-			
-			if (startDate && endDate) {
-				const url = new URL(window.location);
-				url.searchParams.set('page', 'backups');
-				url.searchParams.set('start_date', startDate);
-				url.searchParams.set('end_date', endDate);
-				url.searchParams.delete('p');
-				window.location.href = url.toString();
-			}
-		}
-
-		function clearDateFilter() {
-			const url = new URL(window.location);
-			url.searchParams.set('page', 'backups');
-			url.searchParams.delete('start_date');
-			url.searchParams.delete('end_date');
-			url.searchParams.delete('p');
-			window.location.href = url.toString();
+		// Функция для форматирования размера файла
+		function formatFileSize(bytes) {
+			if (bytes === 0) return '0 Bytes';
+			const k = 1024;
+			const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+			const i = Math.floor(Math.log(bytes) / Math.log(k));
+			return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 		}
 	</script>
 </body>
