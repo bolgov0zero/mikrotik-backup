@@ -151,7 +151,7 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 		<?php endif; ?>
 	</div>
 	
-	<!-- Список бэкапов -->
+<!-- Список бэкапов -->
 	<div class="table-content" style="padding: 0;">
 		<?php while ($backup = $backups->fetchArray(SQLITE3_ASSOC)): ?>
 			<div class="backup-item">
@@ -187,17 +187,20 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 							<button class="btn btn-outline btn-xs" onclick="viewBackupContent(<?= $backup['id'] ?>, '<?= htmlspecialchars($backup['filename']) ?>')" title="Просмотр">
 								<span class="icon icon-view"></span>
 							</button>
+						<?php else: ?>
+							<!-- Заглушка для выравнивания -->
+							<span style="display: inline-block; width: 32px; height: 1px;"></span>
 						<?php endif; ?>
 						
 						<a href="<?= $filePath ?>" download class="btn btn-primary btn-xs" title="Скачать">
 							<span class="icon icon-download"></span>
 						</a>
+						<button class="btn btn-danger btn-xs" onclick="deleteBackup(<?= $backup['id'] ?>, '<?= htmlspecialchars($backup['filename']) ?>')" title="Удалить">
+							<span class="icon icon-delete"></span>
+						</button>
 					<?php else: ?>
 						<span style="color: var(--danger); font-size: 0.6875rem;" title="Файл отсутствует">⚠️</span>
 					<?php endif; ?>
-					<button class="btn btn-danger btn-xs" onclick="deleteBackup(<?= $backup['id'] ?>, '<?= htmlspecialchars($backup['filename']) ?>')" title="Удалить">
-						<span class="icon icon-delete"></span>
-					</button>
 				</div>
 			</div>
 		<?php endwhile; ?>
@@ -250,28 +253,33 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 	<?php endif; ?>
 </div>
 
-<!-- Модальное окно для просмотра содержимого -->
+<!-- Компактное модальное окно для просмотра содержимого -->
 <div id="viewBackupModal" class="modal">
-	<div class="modal-content" style="max-width: 800px; max-height: 90vh;">
-		<div class="modal-header">
-			<h3>Просмотр конфигурации</h3>
+	<div class="modal-content" style="max-width: 900px; max-height: 85vh; display: flex; flex-direction: column;">
+		<div class="modal-header" style="padding: 1.25rem 1.5rem; margin-bottom: 0;">
+			<h3 style="font-size: 1.125rem; margin: 0;">Просмотр конфигурации</h3>
 			<button class="modal-close" onclick="closeModal('viewBackupModal')">×</button>
 		</div>
-		<div class="modal-body">
-			<div class="file-info" style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-primary); border-radius: var(--radius-sm);">
-				<div style="font-weight: 600;" id="viewFileName"></div>
-				<div style="color: var(--text-secondary); font-size: 0.875rem;" id="viewFileSize"></div>
-			</div>
-			<div class="file-content-container">
-				<pre id="backupContent" class="file-content"></pre>
+		
+		<div class="file-info" style="padding: 0.75rem 1.5rem; background: var(--bg-primary); border-bottom: 1px solid var(--border-light);">
+			<div style="display: flex; justify-content: space-between; align-items: center;">
+				<div>
+					<div style="font-weight: 600; font-size: 0.875rem;" id="viewFileName"></div>
+					<div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem;" id="viewFileSize"></div>
+				</div>
+				<button class="btn btn-primary btn-sm" onclick="copyBackupContent()">
+					<span class="icon icon-copy"></span>
+					Копировать
+				</button>
 			</div>
 		</div>
-		<div class="modal-footer" style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-light);">
-			<button class="btn btn-primary" onclick="copyBackupContent()">
-				<span class="icon icon-copy"></span>
-				Копировать
-			</button>
-			<button class="btn btn-outline" onclick="closeModal('viewBackupModal')">
+		
+		<div class="file-content-container" style="flex: 1; margin: 0;">
+			<pre id="backupContent" class="file-content"></pre>
+		</div>
+		
+		<div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-light);">
+			<button class="btn btn-outline btn-sm" onclick="closeModal('viewBackupModal')">
 				Закрыть
 			</button>
 		</div>
@@ -418,16 +426,16 @@ function viewBackupContent(backupId, filename) {
 function copyBackupContent() {
 	const content = document.getElementById('backupContent').textContent;
 	navigator.clipboard.writeText(content).then(() => {
-		// Показываем уведомление об успешном копировании
+		// Компактное уведомление об успешном копировании
 		const copyBtn = event.target;
 		const originalText = copyBtn.innerHTML;
-		copyBtn.innerHTML = '<span class="icon icon-check"></span>Скопировано!';
+		copyBtn.innerHTML = '<span class="icon icon-check"></span>';
 		copyBtn.disabled = true;
 		
 		setTimeout(() => {
 			copyBtn.innerHTML = originalText;
 			copyBtn.disabled = false;
-		}, 2000);
+		}, 1500);
 	}).catch(err => {
 		alert('Не удалось скопировать содержимое: ' + err);
 	});
