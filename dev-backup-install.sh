@@ -34,6 +34,7 @@ fi
 # Этап 1: Установка Mikrotik Backup
 sleep 1
 echo -ne "[ ] Подготовка к запуску.\r"
+ln -s /var/lib/docker/volumes/backup_backup_data/_data ./BackupsFolder
 mkdir backup && cd backup
 cat << EOF > docker-compose.yml
 services:
@@ -76,7 +77,6 @@ fi
 sleep 1
 echo -ne "[ ] Установка скрипта 'backup'.\r"
 # Создаём директорию ~/bin, если её нет
-ln -s /var/lib/docker/volumes/backup_backup_data/_data ./backups
 mkdir -p ~/bin
 # Создаём файл ~/bin/backup
 cat << 'EOF' > ~/bin/backup
