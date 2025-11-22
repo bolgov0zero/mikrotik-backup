@@ -4,6 +4,7 @@ clear
 echo ""
 echo -e "\e[33m================================================\e[0m"
 echo -e "\e[33mMikrotik Backup - Система резервного копирования\e[0m"
+echo -e "\e[33m                Developer Channel               \e[0m"
 echo -e "\e[33m================================================\e[0m"
 echo ""
 
@@ -37,7 +38,7 @@ mkdir backup && cd backup
 cat << EOF > docker-compose.yml
 services:
   mikrotik-backup:
-    image: bolgov0zero/mikrotik-backup:latest
+    image: bolgov0zero/mikrotik-backup:dev
     container_name: mikrotik-backup
     ports:
       - "80:80"
@@ -99,6 +100,7 @@ cd "$BACKUP_DIR" || {
 clear
 echo -e "\e[33m======================\e[0m"
 echo -e "\e[33mСкрипт Mikrotik Backup\e[0m"
+echo -e "\e[33m  Developer Channel   \e[0m"
 echo -e "\e[33m======================\e[0m"
 echo ""
 if docker ps | grep -q "Up"; then > /dev/null 2>&1
@@ -109,7 +111,7 @@ fi
 # Получаем IP хоста
 HOST_IP=$(hostname -I | awk '{print $1}')
 # Получаем удалённую версию из version_info.json
-REMOTE_VERSION=$(curl -s https://raw.githubusercontent.com/bolgov0zero/mikrotik-backup/refs/heads/master/version.json | jq -r '.version')
+REMOTE_VERSION=$(curl -s https://raw.githubusercontent.com/bolgov0zero/mikrotik-backup/refs/heads/dev/version.json | jq -r '.version')
 # Получаем локальную версию из version_info.json, игнорируя ошибки сертификата
 LOCAL_VERSION=$(curl -s -k http://${HOST_IP}/version.json | jq -r '.version')
 if [ -n "$REMOTE_VERSION" ] && [ -n "$LOCAL_VERSION" ]; then

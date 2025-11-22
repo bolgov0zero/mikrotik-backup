@@ -105,6 +105,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			
 			logActivity($db, 'user_add', 'Добавлен новый пользователь: ' . $_POST['username']);
 			break;
+
+		case 'delete_user':
+			$usernameToDelete = $_POST['username'];
+			
+			// Не позволяем удалить самого себя
+			if ($usernameToDelete === $_SESSION['username']) {
+				$_SESSION['settings_error'] = 'Нельзя удалить текущего пользователя';
+				break;
+			}
+			
+			// Не позволяем удалить последнего пользователя
+			$userCount = $db->querySingle('SELECT COUNT(*) FROM users');
+			if ($userCount <= 1) {
+				$_SESSION['settings_error'] = 'Нельзя удалить последнего пользователя';
+				break;
+			}
+			
+			$stmt = $db->prepare('DELETE FROM users WHERE username = ?');
+			$stmt->bindValue(1, $usernameToDelete, SQLITE3_TEXT);
+			$stmt->execute();
+			
+			logActivity($db, 'user_delete', 'Пользователь удален: ' . $usernameToDelete);
+			$_SESSION['settings_success'] = 'Пользователь ' . $usernameToDelete . ' удален';
+			break;
 			
 		case 'create_backup':
 			$deviceId = $_POST['device_id'];
@@ -175,30 +199,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				}
 			}
 			break;
-		
-		case 'delete_user':
-			$usernameToDelete = $_POST['username'];
-			
-			// Не позволяем удалить самого себя
-			if ($usernameToDelete === $_SESSION['username']) {
-				$_SESSION['settings_error'] = 'Нельзя удалить текущего пользователя';
-				break;
-			}
-			
-			// Не позволяем удалить последнего пользователя
-			$userCount = $db->querySingle('SELECT COUNT(*) FROM users');
-			if ($userCount <= 1) {
-				$_SESSION['settings_error'] = 'Нельзя удалить последнего пользователя';
-				break;
-			}
-			
-			$stmt = $db->prepare('DELETE FROM users WHERE username = ?');
-			$stmt->bindValue(1, $usernameToDelete, SQLITE3_TEXT);
-			$stmt->execute();
-			
-			logActivity($db, 'user_delete', 'Пользователь удален: ' . $usernameToDelete);
-			$_SESSION['settings_success'] = 'Пользователь ' . $usernameToDelete . ' удален';
-			break;
 	}
 	
 	// Перенаправляем чтобы избежать повторной отправки формы
@@ -259,6 +259,10 @@ $backups = $stmt->execute();
 
 // Получаем список устройств для фильтра
 $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
+
+// Получаем информацию о текущем пользователе
+$currentUser = $_SESSION['username'];
+$userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 ?>
 
 <!DOCTYPE html>
@@ -287,61 +291,60 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 </head>
 <body>
 	<div class="container">
-<!-- Боковая панель -->
-	<aside class="sidebar">
-		<div class="sidebar-content">
-			<div class="logo">
-				<h1>Mikrotik</h1>
-				<h3>Backup System</h3>
-			</div>
-			<nav>
-				<ul class="nav-menu">
-					<li class="nav-item">
-						<a href="?page=dashboard" class="nav-link <?= $page === 'dashboard' ? 'active' : '' ?>">
-							<span class="icon icon-dashboard"></span>
-							Главная
-						</a>
-					</li>
-					<li class="nav-item">
-						<a href="?page=devices" class="nav-link <?= $page === 'devices' ? 'active' : '' ?>">
-							<span class="icon icon-devices"></span>
-							Устройства
-						</a>
-					</li>
-					<li class="nav-item">
-						<a href="?page=backups" class="nav-link <?= $page === 'backups' ? 'active' : '' ?>">
-							<span class="icon icon-backups"></span>
-							Бэкапы
-						</a>
-					</li>
-					<li class="nav-item">
-						<a href="?page=settings" class="nav-link <?= $page === 'settings' ? 'active' : '' ?>">
-							<span class="icon icon-settings"></span>
-							Настройки
-						</a>
-					</li>
-					<li class="nav-item">
-						<a href="?action=logout" class="nav-link">
-							<span class="icon icon-logout"></span>
-							Выход
-						</a>
-					</li>
-				</ul>
-			</nav>
-		</div>
-		
-		<!-- Блок версии и копирайта -->
-		<div class="sidebar-footer">
-			<div class="footer-card">
-				<div class="version-info">
-					Версия: <span class="version-number" id="appVersion">Загрузка...</span>
+		<!-- Боковая панель -->
+		<aside class="sidebar">
+			<div class="sidebar-content">
+				<div class="logo">
+					<h1>Бэкапы</h1>
 				</div>
-				<div class="copyright">
-					2025 © bolgov0zero
+				<nav>
+					<ul class="nav-menu">
+						<li class="nav-item">
+							<a href="?page=dashboard" class="nav-link <?= $page === 'dashboard' ? 'active' : '' ?>">
+								<span class="icon icon-dashboard"></span>
+								Главная
+							</a>
+						</li>
+						<li class="nav-item">
+							<a href="?page=devices" class="nav-link <?= $page === 'devices' ? 'active' : '' ?>">
+								<span class="icon icon-devices"></span>
+								Устройства
+							</a>
+						</li>
+						<li class="nav-item">
+							<a href="?page=backups" class="nav-link <?= $page === 'backups' ? 'active' : '' ?>">
+								<span class="icon icon-backups"></span>
+								Бэкапы
+							</a>
+						</li>
+						<li class="nav-item">
+							<a href="?page=settings" class="nav-link <?= $page === 'settings' ? 'active' : '' ?>">
+								<span class="icon icon-settings"></span>
+								Настройки
+							</a>
+						</li>
+						<li class="nav-item">
+							<a href="?action=logout" class="nav-link">
+								<span class="icon icon-logout"></span>
+								Выход
+							</a>
+						</li>
+					</ul>
+				</nav>
+			</div>
+			
+			<!-- Блок версии и копирайта -->
+			<div class="sidebar-footer">
+				<div class="footer-card">
+					<div class="version-info">
+						Версия: <span class="version-number" id="appVersion">Загрузка...</span>
+					</div>
+					<div class="copyright">
+						2025 © bolgov0zero
+					</div>
 				</div>
 			</div>
-		</div>
-	</aside>
+		</aside>
 
 		<!-- Основной контент -->
 		<main class="main-content">
@@ -356,7 +359,13 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 					} ?>
 				</h2>
 				<div class="user-info">
-					<span>Пользователь: <?= htmlspecialchars($_SESSION['username']) ?></span>
+					<div class="user-badge">
+						<div class="user-avatar"><?= $userInitial ?></div>
+						<div class="user-details">
+							<div class="username"><?= htmlspecialchars($currentUser) ?></div>
+							<div class="user-role">Администратор</div>
+						</div>
+					</div>
 				</div>
 			</div>
 
@@ -647,6 +656,35 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 			}, 10);
 			
 			openModal('backupModal');
+		}
+
+		// Функции для календаря
+		function openCalendar(inputId) {
+			// Здесь будет реализация открытия календаря
+			console.log('Открыть календарь для:', inputId);
+		}
+
+		function applyDateFilter() {
+			const startDate = document.getElementById('startDate').value;
+			const endDate = document.getElementById('endDate').value;
+			
+			if (startDate && endDate) {
+				const url = new URL(window.location);
+				url.searchParams.set('page', 'backups');
+				url.searchParams.set('start_date', startDate);
+				url.searchParams.set('end_date', endDate);
+				url.searchParams.delete('p');
+				window.location.href = url.toString();
+			}
+		}
+
+		function clearDateFilter() {
+			const url = new URL(window.location);
+			url.searchParams.set('page', 'backups');
+			url.searchParams.delete('start_date');
+			url.searchParams.delete('end_date');
+			url.searchParams.delete('p');
+			window.location.href = url.toString();
 		}
 	</script>
 </body>
