@@ -2,8 +2,7 @@
 // Обработка фильтров для бэкапов
 $filterDeviceId = $_GET['device_id'] ?? 'all';
 $filterType = $_GET['type'] ?? 'all';
-$filterStartDate = $_GET['start_date'] ?? '';
-$filterEndDate = $_GET['end_date'] ?? '';
+$filterDate = $_GET['date'] ?? '';
 
 $pageNumber = max(1, intval($_GET['p'] ?? 1));
 $perPage = 10;
@@ -26,19 +25,9 @@ if ($filterType !== 'all') {
 	$paramTypes[] = SQLITE3_TEXT;
 }
 
-if ($filterStartDate && $filterEndDate) {
-	$whereConditions[] = "DATE(b.created_at) BETWEEN ? AND ?";
-	$params[] = $filterStartDate;
-	$params[] = $filterEndDate;
-	$paramTypes[] = SQLITE3_TEXT;
-	$paramTypes[] = SQLITE3_TEXT;
-} elseif ($filterStartDate) {
-	$whereConditions[] = "DATE(b.created_at) >= ?";
-	$params[] = $filterStartDate;
-	$paramTypes[] = SQLITE3_TEXT;
-} elseif ($filterEndDate) {
-	$whereConditions[] = "DATE(b.created_at) <= ?";
-	$params[] = $filterEndDate;
+if ($filterDate) {
+	$whereConditions[] = "DATE(b.created_at) = ?";
+	$params[] = $filterDate;
 	$paramTypes[] = SQLITE3_TEXT;
 }
 
@@ -74,22 +63,17 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 		</button>
 	</div>
 
-	<!-- Панель фильтров -->
+	<!-- Компактная панель фильтров -->
 	<div class="filters-panel">
-		<div class="filters-header">
-			<h4>Фильтры</h4>
-			<button type="button" class="btn btn-outline btn-sm" onclick="clearAllFilters()">
-				Сбросить все
-			</button>
-		</div>
-		
-		<div class="filters-grid">
+		<div class="filters-row">
 			<!-- Фильтр по устройству -->
 			<div class="filter-group">
 				<label class="filter-label">Устройство</label>
 				<select id="deviceFilter" class="filter-select" onchange="applyFilters()">
 					<option value="all" <?= $filterDeviceId === 'all' ? 'selected' : '' ?>>Все устройства</option>
-					<?php while ($device = $allDevices->fetchArray(SQLITE3_ASSOC)): ?>
+					<?php 
+					$allDevices->reset();
+					while ($device = $allDevices->fetchArray(SQLITE3_ASSOC)): ?>
 						<option value="<?= $device['id'] ?>" <?= $filterDeviceId == $device['id'] ? 'selected' : '' ?>>
 							<?= htmlspecialchars($device['name']) ?>
 						</option>
@@ -97,41 +81,47 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 				</select>
 			</div>
 
-			<!-- Фильтр по типу -->
+			<!-- Фильтр по типу (взаимоисключающие кнопки) -->
 			<div class="filter-group">
 				<label class="filter-label">Тип бэкапа</label>
-				<select id="typeFilter" class="filter-select" onchange="applyFilters()">
-					<option value="all" <?= $filterType === 'all' ? 'selected' : '' ?>>Все типы</option>
-					<option value="full" <?= $filterType === 'full' ? 'selected' : '' ?>>Бинарные</option>
-					<option value="config" <?= $filterType === 'config' ? 'selected' : '' ?>>Экспорт</option>
-				</select>
+				<div class="btn-group">
+					<button type="button" class="btn btn-sm <?= $filterType === 'all' ? 'active' : '' ?>" onclick="setTypeFilter('all')">Все</button>
+					<button type="button" class="btn btn-sm <?= $filterType === 'full' ? 'active' : '' ?>" onclick="setTypeFilter('full')">Бинарные</button>
+					<button type="button" class="btn btn-sm <?= $filterType === 'config' ? 'active' : '' ?>" onclick="setTypeFilter('config')">Экспорт</button>
+				</div>
 			</div>
 
 			<!-- Фильтр по дате -->
 			<div class="filter-group">
-				<label class="filter-label">Период</label>
-				<div class="date-inputs">
-					<input type="date" id="startDate" class="date-input" 
-						   value="<?= htmlspecialchars($filterStartDate) ?>" 
-						   placeholder="От">
-					<span class="date-separator">—</span>
-					<input type="date" id="endDate" class="date-input" 
-						   value="<?= htmlspecialchars($filterEndDate) ?>" 
-						   placeholder="До">
+				<label class="filter-label">Дата</label>
+				<div class="date-filter">
+					<input type="date" id="dateFilter" class="date-input" 
+						   value="<?= htmlspecialchars($filterDate) ?>" 
+						   onchange="applyFilters()">
+					<?php if ($filterDate): ?>
+						<button type="button" class="btn btn-outline btn-xs date-clear" onclick="clearDateFilter()" title="Очистить дату">
+							×
+						</button>
+					<?php endif; ?>
 				</div>
 			</div>
 
-			<!-- Кнопка применения -->
+			<!-- Кнопки управления -->
 			<div class="filter-group">
-				<label class="filter-label" style="opacity: 0;">Применить</label>
-				<button type="button" class="btn btn-primary btn-sm" onclick="applyFilters()" style="white-space: nowrap;">
-					Применить фильтры
-				</button>
+				<label class="filter-label" style="opacity: 0;">Действия</label>
+				<div class="filter-actions">
+					<button type="button" class="btn btn-primary btn-sm" onclick="applyFilters()">
+						Применить
+					</button>
+					<button type="button" class="btn btn-outline btn-sm" onclick="clearAllFilters()">
+						Сбросить
+					</button>
+				</div>
 			</div>
 		</div>
 
-		<!-- Информация о фильтрах -->
-		<?php if ($filterDeviceId !== 'all' || $filterType !== 'all' || $filterStartDate || $filterEndDate): ?>
+		<!-- Активные фильтры -->
+		<?php if ($filterDeviceId !== 'all' || $filterType !== 'all' || $filterDate): ?>
 		<div class="active-filters">
 			<div class="active-filters-label">Активные фильтры:</div>
 			<div class="active-filters-list">
@@ -155,17 +145,10 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 					</span>
 				<?php endif; ?>
 
-				<?php if ($filterStartDate): ?>
+				<?php if ($filterDate): ?>
 					<span class="active-filter">
-						С: <?= htmlspecialchars($filterStartDate) ?>
-						<button type="button" onclick="removeFilter('start_date')">×</button>
-					</span>
-				<?php endif; ?>
-
-				<?php if ($filterEndDate): ?>
-					<span class="active-filter">
-						По: <?= htmlspecialchars($filterEndDate) ?>
-						<button type="button" onclick="removeFilter('end_date')">×</button>
+						Дата: <?= htmlspecialchars($filterDate) ?>
+						<button type="button" onclick="removeFilter('date')">×</button>
 					</span>
 				<?php endif; ?>
 			</div>
@@ -266,11 +249,21 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 </div>
 
 <script>
+function setTypeFilter(type) {
+	document.querySelectorAll('.btn-group .btn').forEach(btn => {
+		btn.classList.remove('active');
+	});
+	event.target.classList.add('active');
+	
+	// Устанавливаем скрытое значение типа
+	document.getElementById('typeFilter').value = type;
+	applyFilters();
+}
+
 function applyFilters() {
 	const deviceId = document.getElementById('deviceFilter').value;
-	const type = document.getElementById('typeFilter').value;
-	const startDate = document.getElementById('startDate').value;
-	const endDate = document.getElementById('endDate').value;
+	const date = document.getElementById('dateFilter').value;
+	const type = document.getElementById('typeFilter')?.value || 'all';
 	
 	const url = new URL(window.location);
 	url.searchParams.set('page', 'backups');
@@ -288,16 +281,10 @@ function applyFilters() {
 		url.searchParams.set('type', type);
 	}
 	
-	if (startDate) {
-		url.searchParams.set('start_date', startDate);
+	if (date) {
+		url.searchParams.set('date', date);
 	} else {
-		url.searchParams.delete('start_date');
-	}
-	
-	if (endDate) {
-		url.searchParams.set('end_date', endDate);
-	} else {
-		url.searchParams.delete('end_date');
+		url.searchParams.delete('date');
 	}
 	
 	// Сбрасываем пагинацию при изменении фильтров
@@ -311,10 +298,14 @@ function clearAllFilters() {
 	url.searchParams.set('page', 'backups');
 	url.searchParams.delete('device_id');
 	url.searchParams.delete('type');
-	url.searchParams.delete('start_date');
-	url.searchParams.delete('end_date');
+	url.searchParams.delete('date');
 	url.searchParams.delete('p');
 	window.location.href = url.toString();
+}
+
+function clearDateFilter() {
+	document.getElementById('dateFilter').value = '';
+	applyFilters();
 }
 
 function removeFilter(filterType) {
@@ -328,11 +319,8 @@ function removeFilter(filterType) {
 		case 'type':
 			url.searchParams.delete('type');
 			break;
-		case 'start_date':
-			url.searchParams.delete('start_date');
-			break;
-		case 'end_date':
-			url.searchParams.delete('end_date');
+		case 'date':
+			url.searchParams.delete('date');
 			break;
 	}
 	
@@ -347,18 +335,6 @@ function changePage(page) {
 	window.location.href = url.toString();
 }
 
-// Автоматическое применение фильтра по дате при изменении
-document.getElementById('startDate').addEventListener('change', function() {
-	const endDate = document.getElementById('endDate').value;
-	if (this.value && endDate) {
-		applyFilters();
-	}
-});
-
-document.getElementById('endDate').addEventListener('change', function() {
-	const startDate = document.getElementById('startDate').value;
-	if (this.value && startDate) {
-		applyFilters();
-	}
-});
+// Скрытый элемент для хранения типа фильтра
+document.write('<input type="hidden" id="typeFilter" value="<?= $filterType ?>">');
 </script>
