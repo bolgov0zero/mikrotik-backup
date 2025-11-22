@@ -23,11 +23,26 @@
 						<button type="button" class="btn btn-sm <?= $filterType === 'config' ? 'active' : '' ?>" onclick="changeTypeFilter('config')">Экспорт</button>
 					</div>
 				</div>
+
+				<!-- Фильтр по дате -->
+				<div class="date-range-picker">
+					<input type="date" id="startDate" class="date-input" placeholder="Начальная дата" 
+						   value="<?= $_GET['start_date'] ?? '' ?>">
+					<span style="color: var(--text-secondary);">—</span>
+					<input type="date" id="endDate" class="date-input" placeholder="Конечная дата"
+						   value="<?= $_GET['end_date'] ?? '' ?>">
+					<button type="button" class="btn btn-primary btn-sm" onclick="applyDateFilter()">
+						Применить
+					</button>
+					<button type="button" class="btn btn-outline btn-sm" onclick="clearDateFilter()">
+						Сбросить
+					</button>
+				</div>
 			</div>
 			
 			<button class="btn btn-primary" onclick="createMassBackup()">
 				<span class="icon icon-mass-backup"></span>
-				Резервное копирование
+				Массовый бэкап
 			</button>
 		</div>
 	</div>
