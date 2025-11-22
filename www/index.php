@@ -381,32 +381,90 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 			</div>
 
 			<?php
-			// Показываем уведомления
+			// Сохраняем уведомления в сессии для отображения через JavaScript
+			$notifications = [];
+			
 			if (isset($_SESSION['backup_success'])) {
-				echo '<div class="success">' . $_SESSION['backup_success'] . '</div>';
+				$notifications[] = ['type' => 'success', 'title' => 'Бэкап создан', 'message' => $_SESSION['backup_success']];
 				unset($_SESSION['backup_success']);
 			}
 			if (isset($_SESSION['backup_error'])) {
-				echo '<div class="error">' . $_SESSION['backup_error'] . '</div>';
+				$notifications[] = ['type' => 'error', 'title' => 'Ошибка бэкапа', 'message' => $_SESSION['backup_error']];
 				unset($_SESSION['backup_error']);
 			}
 			if (isset($_SESSION['test_success'])) {
-				echo '<div class="success">' . $_SESSION['test_success'] . '</div>';
+				$notifications[] = ['type' => 'success', 'title' => 'Тест подключения', 'message' => $_SESSION['test_success']];
 				unset($_SESSION['test_success']);
 			}
 			if (isset($_SESSION['test_error'])) {
-				echo '<div class="error">' . $_SESSION['test_error'] . '</div>';
+				$notifications[] = ['type' => 'error', 'title' => 'Ошибка подключения', 'message' => $_SESSION['test_error']];
 				unset($_SESSION['test_error']);
 			}
 			if (isset($_SESSION['settings_success'])) {
-				echo '<div class="success">' . $_SESSION['settings_success'] . '</div>';
+				$notifications[] = ['type' => 'success', 'title' => 'Настройки', 'message' => $_SESSION['settings_success']];
 				unset($_SESSION['settings_success']);
 			}
 			if (isset($_SESSION['settings_error'])) {
-				echo '<div class="error">' . $_SESSION['settings_error'] . '</div>';
+				$notifications[] = ['type' => 'error', 'title' => 'Ошибка настроек', 'message' => $_SESSION['settings_error']];
 				unset($_SESSION['settings_error']);
 			}
+			?>
 
+			<!-- Контейнер для уведомлений -->
+			<div id="notificationsContainer" class="notifications-container"></div>
+
+			<!-- Скрипт для отображения уведомлений -->
+			<script>
+				// Функция для показа уведомления
+				function showNotification(type, title, message) {
+					const container = document.getElementById('notificationsContainer');
+					
+					const notification = document.createElement('div');
+					notification.className = `notification ${type}`;
+					
+					const icon = type === 'success' ? '✓' : 
+								type === 'error' ? '✗' : 
+								type === 'warning' ? '⚠' : 'ℹ';
+					
+					notification.innerHTML = `
+						<div class="notification-header">
+							<div class="notification-icon">${icon}</div>
+							<div class="notification-title">${title}</div>
+							<button class="notification-close" onclick="closeNotification(this)">×</button>
+						</div>
+						<div class="notification-body">
+							${message}
+						</div>
+					`;
+					
+					container.appendChild(notification);
+					
+					// Автоматически закрываем через 5 секунд
+					setTimeout(() => {
+						if (notification.parentElement) {
+							closeNotification(notification.querySelector('.notification-close'));
+						}
+					}, 5000);
+				}
+				
+				// Функция для закрытия уведомления
+				function closeNotification(closeBtn) {
+					const notification = closeBtn.closest('.notification');
+					notification.classList.add('fade-out');
+					setTimeout(() => {
+						if (notification.parentElement) {
+							notification.remove();
+						}
+					}, 300);
+				}
+				
+				// Показываем уведомления из PHP
+				<?php foreach ($notifications as $notification): ?>
+					showNotification('<?= $notification['type'] ?>', '<?= $notification['title'] ?>', `<?= addslashes($notification['message']) ?>`);
+				<?php endforeach; ?>
+			</script>
+
+			<?php
 			// Подключение страниц
 			switch ($page) {
 				case 'dashboard':
@@ -643,7 +701,7 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 					copyBtn.disabled = false;
 				}, 1500);
 			}).catch(err => {
-				alert('Не удалось скопировать содержимое: ' + err);
+				alert('Не удалось скопировать содержимое: ' . err);
 			});
 		}
 
@@ -654,6 +712,72 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 			const sizes = ['Bytes', 'KB', 'MB', 'GB'];
 			const i = Math.floor(Math.log(bytes) / Math.log(k));
 			return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+		}
+
+		// Глобальная функция для показа уведомлений
+		function showNotification(type, title, message) {
+			const container = document.getElementById('notificationsContainer');
+			if (!container) {
+				console.error('Контейнер уведомлений не найден');
+				return;
+			}
+			
+			const notification = document.createElement('div');
+			notification.className = `notification ${type}`;
+			
+			const icon = type === 'success' ? '✓' : 
+						type === 'error' ? '✗' : 
+						type === 'warning' ? '⚠' : 'ℹ';
+			
+			notification.innerHTML = `
+				<div class="notification-header">
+					<div class="notification-icon">${icon}</div>
+					<div class="notification-title">${title}</div>
+					<button class="notification-close" onclick="closeNotification(this)">×</button>
+				</div>
+				<div class="notification-body">
+					${message}
+				</div>
+			`;
+			
+			container.appendChild(notification);
+			
+			// Автоматически закрываем через 5 секунд
+			setTimeout(() => {
+				if (notification.parentElement) {
+					closeNotification(notification.querySelector('.notification-close'));
+				}
+			}, 5000);
+		}
+
+		// Глобальная функция для закрытия уведомления
+		function closeNotification(closeBtn) {
+			const notification = closeBtn.closest('.notification');
+			notification.classList.add('fade-out');
+			setTimeout(() => {
+				if (notification.parentElement) {
+					notification.remove();
+				}
+			}, 300);
+		}
+
+		// Функция для создания контейнера уведомлений
+		function ensureNotificationsContainer() {
+			if (!document.getElementById('notificationsContainer')) {
+				const container = document.createElement('div');
+				container.id = 'notificationsContainer';
+				container.className = 'notifications-container';
+				document.body.appendChild(container);
+			}
+		}
+
+		// Функция для отслеживания скачивания и показа уведомления
+		function trackDownload(backupId, filename) {
+			// Создаем уведомление о скачивании
+			showNotification('success', 'Скачивание бэкапа', `Файл: ${filename}\nПользователь: <?= htmlspecialchars($_SESSION['username']) ?>\nВремя: ${new Date().toLocaleTimeString()}`);
+			
+			// Продолжаем стандартное скачивание
+			return true;
 		}
 	</script>
 </body>
