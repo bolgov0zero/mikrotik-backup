@@ -69,102 +69,104 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 <div class="table-container">
 	<div class="table-header">
 		<h3>Последние действия</h3>
-		<div style="display: flex; align-items: center; gap: 1.5rem;">
-			<div style="display: flex; align-items: center; gap: 1rem;">
-				<!-- Фильтр по типу события -->
-				<div class="filter-group">
-					<label class="filter-label">Тип события</label>
-					<select id="activityTypeFilter" class="filter-select" onchange="applyActivityFilters()">
-						<option value="all" <?= $filterActivityType === 'all' ? 'selected' : '' ?>>Все события</option>
-						<?php while ($type = $activityTypes->fetchArray(SQLITE3_ASSOC)): ?>
-							<option value="<?= $type['action_type'] ?>" <?= $filterActivityType == $type['action_type'] ? 'selected' : '' ?>>
-								<?= match($type['action_type']) {
-									'device_add' => 'Добавление устройства',
-									'device_delete' => 'Удаление устройства',
-									'backup_create' => 'Создание бэкапа',
-									'backup_delete' => 'Удаление бэкапа',
-									'backup_download' => 'Скачивание бэкапа',
-									'connection_test' => 'Тест подключения',
-									'connection_error' => 'Ошибка подключения',
-									'password_change' => 'Смена паролей',
-									'user_add' => 'Добавление пользователя',
-									'user_delete' => 'Удаление пользователя',
-									'backup_error' => 'Ошибка бэкапа',
-									'scheduled_backup' => 'Автоматический бэкап',
-									'scheduled_backup_error' => 'Ошибки автобэкапа',
-									'schedule_update' => 'Обновление расписания',
-									'mass_backup' => 'Массовый бэкап',
-									default => $type['action_type']
-								} ?>
-							</option>
-						<?php endwhile; ?>
-					</select>
-				</div>
+	</div>
 
-				<!-- Фильтр по дате -->
-				<div class="filter-group">
-					<label class="filter-label">Дата</label>
-					<div class="date-filter">
-						<input type="date" id="activityDateFilter" class="date-input" 
-							   value="<?= htmlspecialchars($filterActivityDate) ?>" 
-							   onchange="applyActivityFilters()">
-						<?php if ($filterActivityDate): ?>
-							<button type="button" class="btn btn-outline btn-xs date-clear" onclick="clearActivityDateFilter()" title="Очистить дату">
-								×
-							</button>
-						<?php endif; ?>
-					</div>
-				</div>
+	<!-- Панель фильтров -->
+	<div class="filters-panel">
+		<div class="filters-row">
+			<!-- Фильтр по типу события -->
+			<div class="filter-group">
+				<label class="filter-label">Тип события</label>
+				<select id="activityTypeFilter" class="filter-select" onchange="applyActivityFilters()">
+					<option value="all" <?= $filterActivityType === 'all' ? 'selected' : '' ?>>Все события</option>
+					<?php while ($type = $activityTypes->fetchArray(SQLITE3_ASSOC)): ?>
+						<option value="<?= $type['action_type'] ?>" <?= $filterActivityType == $type['action_type'] ? 'selected' : '' ?>>
+							<?= match($type['action_type']) {
+								'device_add' => 'Добавление устройств',
+								'device_delete' => 'Удаление устройств',
+								'backup_create' => 'Создание бэкапов',
+								'backup_delete' => 'Удаление бэкапов',
+								'backup_download' => 'Скачивание бэкапов',
+								'connection_test' => 'Тесты подключения',
+								'connection_error' => 'Ошибки подключения',
+								'password_change' => 'Смена паролей',
+								'user_add' => 'Добавление пользователей',
+								'user_delete' => 'Удаление пользователей',
+								'backup_error' => 'Ошибки бэкапов',
+								'scheduled_backup' => 'Автоматические бэкапы',
+								'scheduled_backup_error' => 'Ошибки автобэкапов',
+								'schedule_update' => 'Обновление расписания',
+								'mass_backup' => 'Массовые бэкапы',
+								default => $type['action_type']
+							} ?>
+						</option>
+					<?php endwhile; ?>
+				</select>
+			</div>
 
-				<!-- Кнопка сброса -->
-				<div class="filter-group">
-					<label class="filter-label" style="opacity: 0;">Действия</label>
-					<button type="button" class="btn btn-outline btn-sm" onclick="clearActivityFilters()" style="height: 40px; white-space: nowrap;">
-						Сбросить
-					</button>
+			<!-- Фильтр по дате -->
+			<div class="filter-group">
+				<label class="filter-label">Дата</label>
+				<div class="date-filter">
+					<input type="date" id="activityDateFilter" class="date-input" 
+						   value="<?= htmlspecialchars($filterActivityDate) ?>" 
+						   onchange="applyActivityFilters()">
+					<?php if ($filterActivityDate): ?>
+						<button type="button" class="btn btn-outline btn-xs date-clear" onclick="clearActivityDateFilter()" title="Очистить дату">
+							×
+						</button>
+					<?php endif; ?>
 				</div>
 			</div>
-		</div>
-	</div>
 
-<!-- Активные фильтры -->
-	<?php if ($filterActivityType !== 'all' || $filterActivityDate): ?>
-	<div class="active-filters">
-		<div class="active-filters-label">Активные фильтры:</div>
-		<div class="active-filters-list">
-			<?php if ($filterActivityType !== 'all'): ?>
-				<span class="active-filter">
-					Тип: <?= match($filterActivityType) {
-						'device_add' => 'Добавление устройств',
-						'device_delete' => 'Удаление устройств',
-						'backup_create' => 'Создание бэкапов',
-						'backup_delete' => 'Удаление бэкапов',
-						'backup_download' => 'Скачивание бэкапов',
-						'connection_test' => 'Тесты подключения',
-						'connection_error' => 'Ошибки подключения',
-						'password_change' => 'Смена паролей',
-						'user_add' => 'Добавление пользователей',
-						'user_delete' => 'Удаление пользователей',
-						'backup_error' => 'Ошибки бэкапов',
-						'scheduled_backup' => 'Автоматические бэкапы',
-						'scheduled_backup_error' => 'Ошибки автобэкапов',
-						'schedule_update' => 'Обновление расписания',
-						'mass_backup' => 'Массовые бэкапы',
-						default => $filterActivityType
-					} ?>
-					<button type="button" onclick="removeActivityFilter('type')">×</button>
-				</span>
-			<?php endif; ?>
-	
-			<?php if ($filterActivityDate): ?>
-				<span class="active-filter">
-					Дата: <?= htmlspecialchars($filterActivityDate) ?>
-					<button type="button" onclick="removeActivityFilter('date')">×</button>
-				</span>
-			<?php endif; ?>
+			<!-- Кнопка сброса -->
+			<div class="filter-group">
+				<label class="filter-label" style="opacity: 0;">Действия</label>
+				<button type="button" class="btn btn-outline btn-sm" onclick="clearActivityFilters()" style="height: 40px; white-space: nowrap;">
+					Сбросить все
+				</button>
+			</div>
 		</div>
+
+		<!-- Активные фильтры -->
+		<?php if ($filterActivityType !== 'all' || $filterActivityDate): ?>
+		<div class="active-filters">
+			<div class="active-filters-label">Активные фильтры:</div>
+			<div class="active-filters-list">
+				<?php if ($filterActivityType !== 'all'): ?>
+					<span class="active-filter">
+						Тип: <?= match($filterActivityType) {
+							'device_add' => 'Добавление устройств',
+							'device_delete' => 'Удаление устройств',
+							'backup_create' => 'Создание бэкапов',
+							'backup_delete' => 'Удаление бэкапов',
+							'backup_download' => 'Скачивание бэкапов',
+							'connection_test' => 'Тесты подключения',
+							'connection_error' => 'Ошибки подключения',
+							'password_change' => 'Смена паролей',
+							'user_add' => 'Добавление пользователей',
+							'user_delete' => 'Удаление пользователей',
+							'backup_error' => 'Ошибки бэкапов',
+							'scheduled_backup' => 'Автоматические бэкапы',
+							'scheduled_backup_error' => 'Ошибки автобэкапов',
+							'schedule_update' => 'Обновление расписания',
+							'mass_backup' => 'Массовые бэкапы',
+							default => $filterActivityType
+						} ?>
+						<button type="button" onclick="removeActivityFilter('type')">×</button>
+					</span>
+				<?php endif; ?>
+
+				<?php if ($filterActivityDate): ?>
+					<span class="active-filter">
+						Дата: <?= htmlspecialchars($filterActivityDate) ?>
+						<button type="button" onclick="removeActivityFilter('date')">×</button>
+					</span>
+				<?php endif; ?>
+			</div>
+		</div>
+		<?php endif; ?>
 	</div>
-	<?php endif; ?>
 
 	<div class="table-content">
 		<?php if ($recentActivities->fetchArray()): ?>
@@ -193,20 +195,20 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 							(strpos($activity['action_type'], 'download') !== false ? 'badge-success' : 'badge-primary'))
 						?>">
 							<?= match($activity['action_type']) {
-								'device_add' => 'Добавление устройства',
-								'device_delete' => 'Удаление устройства',
-								'backup_create' => 'Создание бэкапа',
-								'backup_delete' => 'Удаление бэкапа',
-								'backup_download' => 'Скачивание бэкапа',
-								'connection_test' => 'Тест подключения',
-								'connection_error' => 'Ошибка подключения',
-								'password_change' => 'Смена паролей',
-								'user_add' => 'Добавление пользователя',
-								'user_delete' => 'Удаление пользователя',
-								'backup_error' => 'Ошибка бэкапа',
-								'scheduled_backup' => 'Автоматический бэкап',
-								'scheduled_backup_error' => 'Ошибки автобэкапа',
-								'schedule_update' => 'Обновление расписания',
+								'device_add' => 'Добавление',
+								'device_delete' => 'Удаление',
+								'backup_create' => 'Бэкап',
+								'backup_delete' => 'Удаление',
+								'backup_download' => 'Скачивание',
+								'connection_test' => 'Тест',
+								'connection_error' => 'Ошибка',
+								'password_change' => 'Безопасность',
+								'user_add' => 'Пользователь',
+								'user_delete' => 'Пользователь',
+								'backup_error' => 'Ошибка',
+								'scheduled_backup' => 'Автобэкап',
+								'scheduled_backup_error' => 'Ошибка автобэкапа',
+								'schedule_update' => 'Настройки',
 								'mass_backup' => 'Массовый бэкап',
 								default => $activity['action_type']
 							} ?>
@@ -331,5 +333,64 @@ function changeActivityPage(page) {
 	url.searchParams.set('page', 'dashboard');
 	url.searchParams.set('p', page);
 	window.location.href = url.toString();
+}
+
+// Функция для отслеживания скачивания и показа уведомления
+function trackDownload(backupId, filename) {
+	// Создаем уведомление о скачивании
+	showDownloadNotification(filename);
+	
+	// Дополнительная логика может быть добавлена здесь
+	// Например, отправка аналитики на сервер
+	
+	// Продолжаем стандартное скачивание
+	return true;
+}
+
+// Функция для показа уведомления о скачивании
+function showDownloadNotification(filename) {
+	// Создаем элемент уведомления
+	const notification = document.createElement('div');
+	notification.className = 'download-notification';
+	notification.innerHTML = `
+		<div class="download-notification-content">
+			<div class="download-notification-header">
+				<span class="icon icon-download" style="background-color: var(--success);"></span>
+				<span class="download-notification-title">Скачивание бэкапа</span>
+				<button class="download-notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+			</div>
+			<div class="download-notification-body">
+				<div class="download-file-info">
+					<strong>Файл:</strong> ${filename}
+				</div>
+				<div class="download-user-info">
+					<strong>Пользователь:</strong> <?= htmlspecialchars($_SESSION['username']) ?>
+				</div>
+				<div class="download-time-info">
+					<strong>Время:</strong> ${new Date().toLocaleTimeString()}
+				</div>
+			</div>
+		</div>
+	`;
+	
+	// Добавляем уведомление в контейнер
+	const container = document.getElementById('downloadNotifications') || createDownloadNotificationsContainer();
+	container.appendChild(notification);
+	
+	// Автоматически удаляем уведомление через 5 секунд
+	setTimeout(() => {
+		if (notification.parentElement) {
+			notification.remove();
+		}
+	}, 5000);
+}
+
+// Функция для создания контейнера уведомлений
+function createDownloadNotificationsContainer() {
+	const container = document.createElement('div');
+	container.id = 'downloadNotifications';
+	container.className = 'download-notifications-container';
+	document.body.appendChild(container);
+	return container;
 }
 </script>
