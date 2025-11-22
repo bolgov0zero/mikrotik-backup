@@ -1165,13 +1165,66 @@ body {
 	}
 }
 
-/* Стили для компактного модального окна просмотра */
-.file-content-container {
+/* Стили для модального окна просмотра с прокруткой */
+.modal-view-content {
+	max-width: 900px;
+	max-height: 85vh;
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+}
+
+.modal-view-content .modal-header {
+	padding: 1.25rem 1.5rem;
+	margin-bottom: 0;
+	border-bottom: 1px solid var(--border-light);
+	flex-shrink: 0;
+}
+
+.modal-view-content .modal-header h3 {
+	font-size: 1.125rem;
+	margin: 0;
+}
+
+.file-info {
+	padding: 0.75rem 1.5rem;
 	background: var(--bg-primary);
-	border: none;
-	border-radius: 0;
-	overflow: hidden;
+	border-bottom: 1px solid var(--border-light);
+	flex-shrink: 0;
+}
+
+.file-info-content {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+}
+
+.file-details {
 	flex: 1;
+	min-width: 0;
+}
+
+.file-name {
+	font-weight: 600;
+	font-size: 0.875rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.file-size {
+	color: var(--text-secondary);
+	font-size: 0.75rem;
+	margin-top: 0.25rem;
+}
+
+.file-content-wrapper {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 }
 
 .file-content {
@@ -1183,11 +1236,17 @@ body {
 	color: var(--text-primary);
 	background: var(--bg-primary);
 	overflow-x: auto;
+	overflow-y: auto;
 	white-space: pre-wrap;
 	word-wrap: break-word;
-	height: 100%;
-	overflow-y: auto;
+	flex: 1;
 	border: none;
+}
+
+.modal-view-content .modal-footer {
+	padding: 1rem 1.5rem;
+	border-top: 1px solid var(--border-light);
+	flex-shrink: 0;
 }
 
 /* Иконка просмотра */

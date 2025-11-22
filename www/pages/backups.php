@@ -255,17 +255,17 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 
 <!-- Компактное модальное окно для просмотра содержимого -->
 <div id="viewBackupModal" class="modal">
-	<div class="modal-content" style="max-width: 900px; max-height: 85vh; display: flex; flex-direction: column;">
-		<div class="modal-header" style="padding: 1.25rem 1.5rem; margin-bottom: 0;">
-			<h3 style="font-size: 1.125rem; margin: 0;">Просмотр конфигурации</h3>
+	<div class="modal-content modal-view-content">
+		<div class="modal-header">
+			<h3>Просмотр конфигурации</h3>
 			<button class="modal-close" onclick="closeModal('viewBackupModal')">×</button>
 		</div>
 		
-		<div class="file-info" style="padding: 0.75rem 1.5rem; background: var(--bg-primary); border-bottom: 1px solid var(--border-light);">
-			<div style="display: flex; justify-content: space-between; align-items: center;">
-				<div>
-					<div style="font-weight: 600; font-size: 0.875rem;" id="viewFileName"></div>
-					<div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem;" id="viewFileSize"></div>
+		<div class="file-info">
+			<div class="file-info-content">
+				<div class="file-details">
+					<div class="file-name" id="viewFileName"></div>
+					<div class="file-size" id="viewFileSize"></div>
 				</div>
 				<button class="btn btn-primary btn-sm" onclick="copyBackupContent()">
 					<span class="icon icon-copy"></span>
@@ -274,11 +274,11 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 			</div>
 		</div>
 		
-		<div class="file-content-container" style="flex: 1; margin: 0;">
+		<div class="file-content-wrapper">
 			<pre id="backupContent" class="file-content"></pre>
 		</div>
 		
-		<div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-light);">
+		<div class="modal-footer">
 			<button class="btn btn-outline btn-sm" onclick="closeModal('viewBackupModal')">
 				Закрыть
 			</button>
@@ -411,6 +411,14 @@ function viewBackupContent(backupId, filename) {
 			if (data.success) {
 				document.getElementById('viewFileSize').textContent = `Размер: ${formatFileSize(data.size)}`;
 				document.getElementById('backupContent').textContent = data.content;
+				
+				// Авто-скролл к началу после загрузки
+				setTimeout(() => {
+					const contentElement = document.getElementById('backupContent');
+					if (contentElement) {
+						contentElement.scrollTop = 0;
+					}
+				}, 100);
 			} else {
 				document.getElementById('viewFileSize').textContent = 'Ошибка';
 				document.getElementById('backupContent').textContent = 'Не удалось загрузить содержимое файла: ' + data.error;
