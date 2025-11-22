@@ -905,6 +905,7 @@ body {
 	font-size: 0.8125rem;
 }
 
+/* Активные фильтры */
 .active-filters {
 	margin-top: 1rem;
 	padding-top: 1rem;
