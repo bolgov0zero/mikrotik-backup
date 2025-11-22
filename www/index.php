@@ -109,12 +109,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		case 'delete_user':
 			$usernameToDelete = $_POST['username'];
 			
-			// Не позволяем удалить самого себя
-			if ($usernameToDelete === $_SESSION['username']) {
-				$_SESSION['settings_error'] = 'Нельзя удалить текущего пользователя';
-				break;
-			}
-			
 			// Не позволяем удалить последнего пользователя
 			$userCount = $db->querySingle('SELECT COUNT(*) FROM users');
 			if ($userCount <= 1) {

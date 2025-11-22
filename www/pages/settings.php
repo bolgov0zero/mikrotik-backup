@@ -44,35 +44,42 @@
 		<div class="users-list">
 			<?php
 			$users = $db->query('SELECT * FROM users ORDER BY username');
-			$hasOtherUsers = false;
+			$hasUsers = false;
 			
 			while ($user = $users->fetchArray(SQLITE3_ASSOC)):
-				// Пропускаем текущего пользователя в списке удаления
-				if ($user['username'] === $_SESSION['username']) continue;
-				$hasOtherUsers = true;
-				
+				$hasUsers = true;
+				$isCurrentUser = $user['username'] === $_SESSION['username'];
 				$initial = strtoupper(mb_substr($user['username'], 0, 1));
 			?>
-				<div class="user-item">
+				<div class="user-item <?= $isCurrentUser ? 'current-user' : '' ?>">
 					<div class="user-info">
 						<div class="user-avatar"><?= $initial ?></div>
-						<div class="username"><?= htmlspecialchars($user['username']) ?></div>
+						<div class="username">
+							<?= htmlspecialchars($user['username']) ?>
+							<?php if ($isCurrentUser): ?>
+								<span class="current-user-badge">(Вы)</span>
+							<?php endif; ?>
+						</div>
 					</div>
-					<button 
-						type="button" 
-						class="btn btn-danger btn-sm" 
-						onclick="deleteUser('<?= htmlspecialchars($user['username']) ?>')"
-						title="Удалить пользователя"
-					>
-						<span class="icon icon-delete"></span>
-						Удалить
-					</button>
+					<?php if (!$isCurrentUser): ?>
+						<button 
+							type="button" 
+							class="btn btn-danger btn-sm" 
+							onclick="deleteUser('<?= htmlspecialchars($user['username']) ?>')"
+							title="Удалить пользователя"
+						>
+							<span class="icon icon-delete"></span>
+							Удалить
+						</button>
+					<?php else: ?>
+						<div class="current-user-label">Текущий пользователь</div>
+					<?php endif; ?>
 				</div>
 			<?php endwhile; ?>
 			
-			<?php if (!$hasOtherUsers): ?>
+			<?php if (!$hasUsers): ?>
 				<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-					Нет других пользователей
+					Нет пользователей
 				</div>
 			<?php endif; ?>
 		</div>
