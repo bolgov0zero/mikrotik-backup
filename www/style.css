@@ -1500,3 +1500,21 @@ body {
 		max-width: 100%;
 	}
 }
+
+.current-user {
+	background-color: var(--bg-primary);
+}
+
+.current-user-badge {
+	font-size: 0.75rem;
+	color: var(--primary-color);
+	margin-left: 0.5rem;
+}
+
+.current-user-label {
+	font-size: 0.75rem;
+	color: var(--text-secondary);
+	padding: 0.25rem 0.5rem;
+	background: var(--bg-secondary);
+	border-radius: var(--radius-sm);
+}
