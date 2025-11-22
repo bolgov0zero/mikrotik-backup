@@ -182,6 +182,13 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 					$filePath = $backupPath . $backup['filename'];
 					if (file_exists($filePath)):
 					?>
+						<!-- Кнопка просмотра (только для экспортов) -->
+						<?php if ($backup['type'] === 'config'): ?>
+							<button class="btn btn-outline btn-xs" onclick="viewBackupContent(<?= $backup['id'] ?>, '<?= htmlspecialchars($backup['filename']) ?>')" title="Просмотр">
+								<span class="icon icon-view"></span>
+							</button>
+						<?php endif; ?>
+						
 						<a href="<?= $filePath ?>" download class="btn btn-primary btn-xs" title="Скачать">
 							<span class="icon icon-download"></span>
 						</a>
@@ -241,6 +248,34 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 		</div>
 	</div>
 	<?php endif; ?>
+</div>
+
+<!-- Модальное окно для просмотра содержимого -->
+<div id="viewBackupModal" class="modal">
+	<div class="modal-content" style="max-width: 800px; max-height: 90vh;">
+		<div class="modal-header">
+			<h3>Просмотр конфигурации</h3>
+			<button class="modal-close" onclick="closeModal('viewBackupModal')">×</button>
+		</div>
+		<div class="modal-body">
+			<div class="file-info" style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-primary); border-radius: var(--radius-sm);">
+				<div style="font-weight: 600;" id="viewFileName"></div>
+				<div style="color: var(--text-secondary); font-size: 0.875rem;" id="viewFileSize"></div>
+			</div>
+			<div class="file-content-container">
+				<pre id="backupContent" class="file-content"></pre>
+			</div>
+		</div>
+		<div class="modal-footer" style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-light);">
+			<button class="btn btn-primary" onclick="copyBackupContent()">
+				<span class="icon icon-copy"></span>
+				Копировать
+			</button>
+			<button class="btn btn-outline" onclick="closeModal('viewBackupModal')">
+				Закрыть
+			</button>
+		</div>
+	</div>
 </div>
 
 <script>
@@ -344,5 +379,74 @@ function changePage(page) {
 	url.searchParams.set('page', 'backups');
 	url.searchParams.set('p', page);
 	window.location.href = url.toString();
+}
+
+// Функция для просмотра содержимого бэкапа
+function viewBackupContent(backupId, filename) {
+	// Показываем загрузку
+	document.getElementById('viewFileName').textContent = filename;
+	document.getElementById('viewFileSize').textContent = 'Загрузка...';
+	document.getElementById('backupContent').textContent = 'Загрузка содержимого...';
+	
+	// Открываем модальное окно
+	openModal('viewBackupModal');
+	
+	// Загружаем содержимое файла
+	fetch(`view_backup.php?id=${backupId}`)
+		.then(response => {
+			if (!response.ok) {
+				throw new Error('Ошибка загрузки файла');
+			}
+			return response.json();
+		})
+		.then(data => {
+			if (data.success) {
+				document.getElementById('viewFileSize').textContent = `Размер: ${formatFileSize(data.size)}`;
+				document.getElementById('backupContent').textContent = data.content;
+			} else {
+				document.getElementById('viewFileSize').textContent = 'Ошибка';
+				document.getElementById('backupContent').textContent = 'Не удалось загрузить содержимое файла: ' + data.error;
+			}
+		})
+		.catch(error => {
+			document.getElementById('viewFileSize').textContent = 'Ошибка';
+			document.getElementById('backupContent').textContent = 'Ошибка загрузки: ' + error.message;
+		});
+}
+
+// Функция для копирования содержимого
+function copyBackupContent() {
+	const content = document.getElementById('backupContent').textContent;
+	navigator.clipboard.writeText(content).then(() => {
+		// Показываем уведомление об успешном копировании
+		const copyBtn = event.target;
+		const originalText = copyBtn.innerHTML;
+		copyBtn.innerHTML = '<span class="icon icon-check"></span>Скопировано!';
+		copyBtn.disabled = true;
+		
+		setTimeout(() => {
+			copyBtn.innerHTML = originalText;
+			copyBtn.disabled = false;
+		}, 2000);
+	}).catch(err => {
+		alert('Не удалось скопировать содержимое: ' + err);
+	});
+}
+
+// Функция для форматирования размера файла
+function formatFileSize(bytes) {
+	if (bytes === 0) return '0 Bytes';
+	const k = 1024;
+	const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function openModal(modalId) {
+	document.getElementById(modalId).style.display = 'flex';
+}
+
+function closeModal(modalId) {
+	document.getElementById(modalId).style.display = 'none';
 }
 </script>
