@@ -876,3 +876,77 @@ body {
 	position: fixed;
 	bottom: 15px;
 }
+
+/* Стили для списка пользователей */
+.users-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.user-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.875rem;
+	background: var(--bg-primary);
+	border: 1px solid var(--border-light);
+	border-radius: var(--radius-sm);
+	transition: all 0.2s ease;
+}
+
+.user-item:hover {
+	background: var(--bg-secondary);
+	border-color: var(--text-secondary);
+}
+
+.user-info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.username {
+	font-weight: 600;
+	color: var(--text-primary);
+	font-size: 0.875rem;
+}
+
+.user-meta {
+	color: var(--text-secondary);
+	font-size: 0.75rem;
+}
+
+/* Обновленные стили для боковой панели */
+.sidebar-footer {
+	margin-top: auto;
+	padding-top: 2rem;
+	text-align: center;
+}
+
+.version-card {
+	background: var(--bg-primary);
+	padding: 1rem;
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--border-light);
+	margin-top: 1rem;
+}
+
+.version-info {
+	color: var(--text-secondary);
+	font-size: 0.75rem;
+	line-height: 1.4;
+}
+
+.version-number {
+	color: var(--accent);
+	font-weight: 600;
+	font-size: 0.8125rem;
+}
+
+.copyright {
+	color: var(--text-muted);
+	font-size: 0.6875rem;
+	margin-top: 0.5rem;
+	opacity: 0.7;
+}

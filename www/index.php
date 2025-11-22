@@ -175,6 +175,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				}
 			}
 			break;
+		
+		case 'delete_user':
+			$usernameToDelete = $_POST['username'];
+			
+			// Не позволяем удалить самого себя
+			if ($usernameToDelete === $_SESSION['username']) {
+				$_SESSION['settings_error'] = 'Нельзя удалить текущего пользователя';
+				break;
+			}
+			
+			// Не позволяем удалить последнего пользователя
+			$userCount = $db->querySingle('SELECT COUNT(*) FROM users');
+			if ($userCount <= 1) {
+				$_SESSION['settings_error'] = 'Нельзя удалить последнего пользователя';
+				break;
+			}
+			
+			$stmt = $db->prepare('DELETE FROM users WHERE username = ?');
+			$stmt->bindValue(1, $usernameToDelete, SQLITE3_TEXT);
+			$stmt->execute();
+			
+			logActivity($db, 'user_delete', 'Пользователь удален: ' . $usernameToDelete);
+			$_SESSION['settings_success'] = 'Пользователь ' . $usernameToDelete . ' удален';
+			break;
 	}
 	
 	// Перенаправляем чтобы избежать повторной отправки формы
@@ -263,49 +287,58 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 </head>
 <body>
 	<div class="container">
-		<!-- Боковая панель -->
-		<aside class="sidebar">
-			<div class="logo">
-				<h1>Бэкапы</h1>
+<!-- Боковая панель -->
+	<aside class="sidebar">
+		<div class="logo">
+			<h1>Бэкапы</h1>
+		</div>
+		<nav>
+			<ul class="nav-menu">
+				<li class="nav-item">
+					<a href="?page=dashboard" class="nav-link <?= $page === 'dashboard' ? 'active' : '' ?>">
+						<span class="icon icon-dashboard"></span>
+						Главная
+					</a>
+				</li>
+				<li class="nav-item">
+					<a href="?page=devices" class="nav-link <?= $page === 'devices' ? 'active' : '' ?>">
+						<span class="icon icon-devices"></span>
+						Устройства
+					</a>
+				</li>
+				<li class="nav-item">
+					<a href="?page=backups" class="nav-link <?= $page === 'backups' ? 'active' : '' ?>">
+						<span class="icon icon-backups"></span>
+						Бэкапы
+					</a>
+				</li>
+				<li class="nav-item">
+					<a href="?page=settings" class="nav-link <?= $page === 'settings' ? 'active' : '' ?>">
+						<span class="icon icon-settings"></span>
+						Настройки
+					</a>
+				</li>
+				<li class="nav-item">
+					<a href="?action=logout" class="nav-link">
+						<span class="icon icon-logout"></span>
+						Выход
+					</a>
+				</li>
+			</ul>
+		</nav>
+		
+		<!-- Обновленный блок версии -->
+		<div class="sidebar-footer">
+			<div class="version-card">
+				<div class="version-info">
+					Версия: <span class="version-number" id="appVersion">Загрузка...</span>
+				</div>
+				<div class="copyright">
+					2025 © bolgov0zero
+				</div>
 			</div>
-			<nav>
-				<ul class="nav-menu">
-					<li class="nav-item">
-						<a href="?page=dashboard" class="nav-link <?= $page === 'dashboard' ? 'active' : '' ?>">
-							<span class="icon icon-dashboard"></span>
-							Главная
-						</a>
-					</li>
-					<li class="nav-item">
-						<a href="?page=devices" class="nav-link <?= $page === 'devices' ? 'active' : '' ?>">
-							<span class="icon icon-devices"></span>
-							Устройства
-						</a>
-					</li>
-					<li class="nav-item">
-						<a href="?page=backups" class="nav-link <?= $page === 'backups' ? 'active' : '' ?>">
-							<span class="icon icon-backups"></span>
-							Бэкапы
-						</a>
-					</li>
-					<li class="nav-item">
-						<a href="?page=settings" class="nav-link <?= $page === 'settings' ? 'active' : '' ?>">
-							<span class="icon icon-settings"></span>
-							Настройки
-						</a>
-					</li>
-					<li class="nav-item">
-						<a href="?action=logout" class="nav-link">
-							<span class="icon icon-logout"></span>
-							Выход
-						</a>
-					</li>
-				</ul>
-			</nav>
-			<footer class="version_info">
-				<center>2025 © bolgov0zero<br/>Версия: <span id="appVersion">Загрузка...</span></center>
-			</footer>
-		</aside>
+		</div>
+	</aside>
 
 		<!-- Основной контент -->
 		<main class="main-content">
@@ -345,6 +378,10 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 			if (isset($_SESSION['settings_success'])) {
 				echo '<div class="success">' . $_SESSION['settings_success'] . '</div>';
 				unset($_SESSION['settings_success']);
+			}
+			if (isset($_SESSION['settings_error'])) {
+				echo '<div class="error">' . $_SESSION['settings_error'] . '</div>';
+				unset($_SESSION['settings_error']);
 			}
 
 			// Подключение страниц
