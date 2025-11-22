@@ -337,7 +337,7 @@ function createMassBackup($db) {
 	
 	return [
 		'success' => ($successCount > 0),
-		'message' => "Массовое резервное копирование завершено. Устройства: " . implode(', ', $processedDevices) . ". Успешно: $successCount, Ошибок: $errorCount",
+		'message' => "Массовое резервное копирование завершено. Успешно: $successCount, Ошибок: $errorCount",
 		'success_count' => $successCount,
 		'error_count' => $errorCount,
 		'processed_devices' => $processedDevices
