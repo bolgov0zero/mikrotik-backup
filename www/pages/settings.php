@@ -57,7 +57,6 @@
 						<div class="username">
 							<?= htmlspecialchars($user['username']) ?>
 							<?php if ($isCurrentUser): ?>
-								<span class="current-user-badge">(Вы)</span>
 							<?php endif; ?>
 						</div>
 					</div>
