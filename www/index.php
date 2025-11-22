@@ -291,7 +291,7 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 	<aside class="sidebar">
 		<div class="sidebar-content">
 			<div class="logo">
-				<h1>Бэкапы</h1>
+				<h1>Mikrotik</h1><br/><h2>Backup Ssytem</h2>
 			</div>
 			<nav>
 				<ul class="nav-menu">
