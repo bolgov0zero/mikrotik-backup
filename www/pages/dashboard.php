@@ -195,21 +195,21 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 							(strpos($activity['action_type'], 'download') !== false ? 'badge-success' : 'badge-primary'))
 						?>">
 							<?= match($activity['action_type']) {
-								'device_add' => 'Добавление',
-								'device_delete' => 'Удаление',
-								'backup_create' => 'Бэкап',
-								'backup_delete' => 'Удаление',
-								'backup_download' => 'Скачивание',
-								'connection_test' => 'Тест',
-								'connection_error' => 'Ошибка',
-								'password_change' => 'Безопасность',
-								'user_add' => 'Пользователь',
-								'user_delete' => 'Пользователь',
-								'backup_error' => 'Ошибка',
-								'scheduled_backup' => 'Автобэкап',
-								'scheduled_backup_error' => 'Ошибка автобэкапа',
-								'schedule_update' => 'Настройки',
-								'mass_backup' => 'Массовый бэкап',
+								'device_add' => 'Добавление устройств',
+								'device_delete' => 'Удаление устройств',
+								'backup_create' => 'Создание бэкапов',
+								'backup_delete' => 'Удаление бэкапов',
+								'backup_download' => 'Скачивание бэкапов',
+								'connection_test' => 'Тесты подключения',
+								'connection_error' => 'Ошибки подключения',
+								'password_change' => 'Смена паролей',
+								'user_add' => 'Добавление пользователей',
+								'user_delete' => 'Удаление пользователей',
+								'backup_error' => 'Ошибки бэкапов',
+								'scheduled_backup' => 'Автоматические бэкапы',
+								'scheduled_backup_error' => 'Ошибки автобэкапов',
+								'schedule_update' => 'Обновление расписания',
+								'mass_backup' => 'Массовые бэкапы',
 								default => $activity['action_type']
 							} ?>
 						</span>
