@@ -283,6 +283,7 @@ function getMikrotikVersion($device) {
 	];
 }
 
+// Функция для создания бэкапа через SSH
 function createMikrotikBackup($device, $type) {
 	if (!function_exists('ssh2_connect')) {
 		return ['success' => false, 'error' => 'Ошибка: расширение php-ssh2 не установлено'];
@@ -385,10 +386,11 @@ function createMassBackup($db) {
 		// Создаем полный бэкап
 		$fullResult = createMikrotikBackup($device, 'full');
 		if ($fullResult['success']) {
-			$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename) VALUES (?, ?, ?)');
+			$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename, ros_version) VALUES (?, ?, ?, ?)');
 			$stmt->bindValue(1, $device['id'], SQLITE3_INTEGER);
 			$stmt->bindValue(2, 'full', SQLITE3_TEXT);
 			$stmt->bindValue(3, $fullResult['filename'], SQLITE3_TEXT);
+			$stmt->bindValue(4, $fullResult['ros_version'], SQLITE3_TEXT);
 			$stmt->execute();
 			$successCount++;
 		} else {
@@ -401,10 +403,11 @@ function createMassBackup($db) {
 		// Создаем экспорт конфигурации
 		$configResult = createMikrotikBackup($device, 'config');
 		if ($configResult['success']) {
-			$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename) VALUES (?, ?, ?)');
+			$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename, ros_version) VALUES (?, ?, ?, ?)');
 			$stmt->bindValue(1, $device['id'], SQLITE3_INTEGER);
 			$stmt->bindValue(2, 'config', SQLITE3_TEXT);
 			$stmt->bindValue(3, $configResult['filename'], SQLITE3_TEXT);
+			$stmt->bindValue(4, $configResult['ros_version'], SQLITE3_TEXT);
 			$stmt->execute();
 			$successCount++;
 		} else {

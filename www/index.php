@@ -20,8 +20,6 @@ $page = $_GET['page'] ?? 'dashboard';
 // Обработка действий
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	switch ($_POST['action'] ?? '') {
-		// В разделе обработки POST запросов в index.php, обновим case 'add_device':
-		
 		case 'add_device':
 			$port = !empty($_POST['port']) ? intval($_POST['port']) : 22;
 			$stmt = $db->prepare('INSERT INTO devices (name, ip, port, username, password) VALUES (?, ?, ?, ?, ?)');
@@ -158,8 +156,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			if ($device) {
 				// Используем вашу рабочую функцию бэкапирования
 				$backupResult = createMikrotikBackup($device, $type);
-				
-				// В case 'create_backup' в index.php обновим сохранение бэкапа:
 				
 				if ($backupResult['success']) {
 					// Сохраняем информацию о бэкапе в базу

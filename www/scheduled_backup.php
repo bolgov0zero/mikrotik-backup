@@ -100,6 +100,16 @@ try {
 				if ($stmt->execute()) {
 					$successCount++;
 					logToFile("  ✓ Полный бэкап создан и записан в БД: {$fullResult['filename']}");
+					
+					// Проверим что запись действительно есть в БД
+					$checkStmt = $db->prepare('SELECT COUNT(*) FROM backups WHERE filename = ?');
+					$checkStmt->bindValue(1, $fullResult['filename'], SQLITE3_TEXT);
+					$checkResult = $checkStmt->execute();
+					$count = $checkResult->fetchArray(SQLITE3_NUM)[0];
+					logToFile("  ✓ Проверка БД: найдено {$count} записей для файла {$fullResult['filename']}");
+				} else {
+					$errorCount++;
+					logToFile("  ✗ Ошибка записи полного бэкапа в БД: {$fullResult['filename']}");
 				}
 			} else {
 				$errorCount++;
@@ -123,8 +133,14 @@ try {
 				if ($stmt->execute()) {
 					$successCount++;
 					logToFile("  ✓ Экспорт конфигурации создан и записан в БД: {$configResult['filename']}");
-				}
-			} else {
+					
+					// Проверим что запись действительно есть в БД
+					$checkStmt = $db->prepare('SELECT COUNT(*) FROM backups WHERE filename = ?');
+					$checkStmt->bindValue(1, $configResult['filename'], SQLITE3_TEXT);
+					$checkResult = $checkStmt->execute();
+					$count = $checkResult->fetchArray(SQLITE3_NUM)[0];
+					logToFile("  ✓ Проверка БД: найдено {$count} записей для файла {$configResult['filename']}");
+				} else {
 					$errorCount++;
 					logToFile("  ✗ Ошибка записи экспорта в БД: {$configResult['filename']}");
 				}
