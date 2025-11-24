@@ -44,6 +44,7 @@ function initDatabase() {
 		port INTEGER DEFAULT 22,
 		username TEXT NOT NULL,
 		password TEXT NOT NULL,
+		model TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	)');
 	
@@ -52,6 +53,7 @@ function initDatabase() {
 		device_id INTEGER,
 		type TEXT NOT NULL,
 		filename TEXT NOT NULL,
+		ros_version TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE CASCADE
 	)');
@@ -207,6 +209,80 @@ function sshExec($connection, $command) {
 	return ['success' => true, 'output' => $output];
 }
 
+// Функция для получения информации об устройстве Mikrotik
+function getMikrotikDeviceInfo($device) {
+	if (!function_exists('ssh2_connect')) {
+		return ['success' => false, 'error' => 'SSH2 расширение не установлено'];
+	}
+	
+	$connection = @ssh2_connect($device['ip'], $device['port']);
+	if (!$connection) {
+		return ['success' => false, 'error' => 'Не удалось подключиться к устройству'];
+	}
+	
+	if (!@ssh2_auth_password($connection, $device['username'], $device['password'])) {
+		return ['success' => false, 'error' => 'Неверные учетные данные SSH'];
+	}
+	
+	// Получаем модель устройства
+	$modelResult = sshExec($connection, '/system resource print');
+	$model = 'Unknown';
+	if ($modelResult['success']) {
+		if (preg_match('/board-name:\s*(.+)/i', $modelResult['output'], $matches)) {
+			$model = trim($matches[1]);
+		}
+	}
+	
+	// Получаем версию ROS
+	$versionResult = sshExec($connection, '/system resource print');
+	$version = 'Unknown';
+	if ($versionResult['success']) {
+		if (preg_match('/version:\s*(.+)/i', $versionResult['output'], $matches)) {
+			$version = trim($matches[1]);
+		}
+	}
+	
+	ssh2_disconnect($connection);
+	
+	return [
+		'success' => true,
+		'model' => $model,
+		'version' => $version
+	];
+}
+
+// Функция для получения только версии ROS
+function getMikrotikVersion($device) {
+	if (!function_exists('ssh2_connect')) {
+		return ['success' => false, 'error' => 'SSH2 расширение не установлено'];
+	}
+	
+	$connection = @ssh2_connect($device['ip'], $device['port']);
+	if (!$connection) {
+		return ['success' => false, 'error' => 'Не удалось подключиться к устройству'];
+	}
+	
+	if (!@ssh2_auth_password($connection, $device['username'], $device['password'])) {
+		return ['success' => false, 'error' => 'Неверные учетные данные SSH'];
+	}
+	
+	// Получаем версию ROS
+	$versionResult = sshExec($connection, '/system resource print');
+	$version = 'Unknown';
+	if ($versionResult['success']) {
+		if (preg_match('/version:\s*(.+)/i', $versionResult['output'], $matches)) {
+			$version = trim($matches[1]);
+		}
+	}
+	
+	ssh2_disconnect($connection);
+	
+	return [
+		'success' => true,
+		'version' => $version
+	];
+}
+
 // Функция для создания бэкапа через SSH
 function createMikrotikBackup($device, $type) {
 	if (!function_exists('ssh2_connect')) {
@@ -217,6 +293,10 @@ function createMikrotikBackup($device, $type) {
 	$port = $device['port'];
 	$login = $device['username'];
 	$password = $device['password'];
+	
+	// Получаем версию ROS перед созданием бэкапа
+	$versionInfo = getMikrotikVersion($device);
+	$rosVersion = $versionInfo['success'] ? $versionInfo['version'] : 'Unknown';
 	
 	// Определяем файлы для бэкапа
 	$remote_file = $type === 'full' ? 'webfig-backup.backup' : 'webfig-export.rsc';
@@ -287,6 +367,7 @@ function createMikrotikBackup($device, $type) {
 		'success' => true, 
 		'filename' => basename($local_file),
 		'filepath' => $local_file,
+		'ros_version' => $rosVersion,
 		'message' => "Бэкап успешно создан: " . basename($local_file)
 	];
 }
@@ -305,10 +386,11 @@ function createMassBackup($db) {
 		// Создаем полный бэкап
 		$fullResult = createMikrotikBackup($device, 'full');
 		if ($fullResult['success']) {
-			$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename) VALUES (?, ?, ?)');
+			$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename, ros_version) VALUES (?, ?, ?, ?)');
 			$stmt->bindValue(1, $device['id'], SQLITE3_INTEGER);
 			$stmt->bindValue(2, 'full', SQLITE3_TEXT);
 			$stmt->bindValue(3, $fullResult['filename'], SQLITE3_TEXT);
+			$stmt->bindValue(4, $fullResult['ros_version'], SQLITE3_TEXT);
 			$stmt->execute();
 			$successCount++;
 		} else {
@@ -321,10 +403,11 @@ function createMassBackup($db) {
 		// Создаем экспорт конфигурации
 		$configResult = createMikrotikBackup($device, 'config');
 		if ($configResult['success']) {
-			$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename) VALUES (?, ?, ?)');
+			$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename, ros_version) VALUES (?, ?, ?, ?)');
 			$stmt->bindValue(1, $device['id'], SQLITE3_INTEGER);
 			$stmt->bindValue(2, 'config', SQLITE3_TEXT);
 			$stmt->bindValue(3, $configResult['filename'], SQLITE3_TEXT);
+			$stmt->bindValue(4, $configResult['ros_version'], SQLITE3_TEXT);
 			$stmt->execute();
 			$successCount++;
 		} else {

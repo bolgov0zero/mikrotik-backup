@@ -8,18 +8,24 @@
 	</div>
 	<div class="table-content">
 		<?php while ($device = $devices->fetchArray(SQLITE3_ASSOC)): ?>
-			<div class="table-row">
+			<div class="table-row" style="grid-template-columns: 2fr 1fr auto;">
 				<div>
 					<div style="font-weight: 600; margin-bottom: 0.25rem;">
 						<?= htmlspecialchars($device['name']) ?>
 					</div>
+					<?php if (!empty($device['model'])): ?>
+						<div style="color: var(--text-secondary); font-size: 0.8125rem; margin-bottom: 0.25rem;">
+							<strong>Модель:</strong> <?= htmlspecialchars($device['model']) ?>
+						</div>
+					<?php endif; ?>
+					<div style="color: var(--text-secondary); font-size: 0.8125rem; margin-bottom: 0.25rem;">
+						<strong>Пользователь:</strong> <?= htmlspecialchars($device['username']) ?>
+					</div>
 					<div style="color: var(--text-secondary); font-size: 0.8125rem;">
-						<?= htmlspecialchars($device['ip']) ?>:<?= $device['port'] ?>
+						<strong>Адрес:</strong> <?= htmlspecialchars($device['ip']) ?>:<?= $device['port'] ?>
 					</div>
 				</div>
-				<div style="color: var(--text-secondary);"><?= htmlspecialchars($device['username']) ?></div>
-				<div style="color: var(--text-muted);">••••••••</div>
-				<div style="color: var(--text-secondary); font-size: 0.8125rem;">
+				<div style="color: var(--text-secondary); font-size: 0.8125rem; display: flex; align-items: center;">
 					<?= formatDbDateTime($device['created_at']) ?>
 				</div>
 				<div class="actions">

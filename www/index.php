@@ -30,6 +30,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			$stmt->bindValue(5, $_POST['password'], SQLITE3_TEXT);
 			$stmt->execute();
 			
+			// Получаем ID добавленного устройства
+			$deviceId = $db->lastInsertRowID();
+			
+			// Получаем информацию об устройстве для определения модели
+			$deviceInfo = [
+				'ip' => $_POST['ip'],
+				'port' => $port,
+				'username' => $_POST['username'],
+				'password' => $_POST['password']
+			];
+			
+			$modelInfo = getMikrotikDeviceInfo($deviceInfo);
+			$model = $modelInfo['success'] ? $modelInfo['model'] : 'Unknown';
+			
+			// Обновляем устройство с информацией о модели
+			$stmt = $db->prepare('UPDATE devices SET model = ? WHERE id = ?');
+			$stmt->bindValue(1, $model, SQLITE3_TEXT);
+			$stmt->bindValue(2, $deviceId, SQLITE3_INTEGER);
+			$stmt->execute();
+			
 			logActivity($db, 'device_add', 'Добавлено новое устройство', $_POST['name']);
 			break;
 			
@@ -139,10 +159,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				
 				if ($backupResult['success']) {
 					// Сохраняем информацию о бэкапе в базу
-					$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename) VALUES (?, ?, ?)');
+					$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename, ros_version) VALUES (?, ?, ?, ?)');
 					$stmt->bindValue(1, $deviceId, SQLITE3_INTEGER);
 					$stmt->bindValue(2, $type, SQLITE3_TEXT);
 					$stmt->bindValue(3, $backupResult['filename'], SQLITE3_TEXT);
+					$stmt->bindValue(4, $backupResult['ros_version'], SQLITE3_TEXT);
 					$stmt->execute();
 					
 					$_SESSION['backup_success'] = $backupResult['message'];

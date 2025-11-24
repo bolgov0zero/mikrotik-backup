@@ -154,7 +154,7 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 <!-- Список бэкапов -->
 	<div class="table-content" style="padding: 0;">
 		<?php while ($backup = $backups->fetchArray(SQLITE3_ASSOC)): ?>
-			<div class="backup-item">
+			<div class="backup-item" style="grid-template-columns: 2fr auto auto auto auto;">
 				<div class="backup-info">
 					<div class="backup-name">
 						<?= htmlspecialchars($backup['device_name'] ?? 'Неизвестное устройство') ?>
@@ -164,7 +164,17 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 					</div>
 				</div>
 				
-				<div>
+				<?php if (!empty($backup['ros_version'])): ?>
+				<div style="display: flex; align-items: center;">
+					<span class="badge badge-success" title="Версия RouterOS" style="font-size: 0.7rem; white-space: nowrap;">
+						ROS <?= htmlspecialchars($backup['ros_version']) ?>
+					</span>
+				</div>
+				<?php else: ?>
+				<div></div>
+				<?php endif; ?>
+				
+				<div style="display: flex; align-items: center;">
 					<span class="badge <?= $backup['type'] === 'full' ? 'badge-primary' : 'badge-warning' ?>">
 						<?= $backup['type'] === 'full' ? 'Бинарный' : 'Экспорт' ?>
 					</span>
