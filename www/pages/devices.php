@@ -14,16 +14,17 @@
 						<?= htmlspecialchars($device['name']) ?>
 					</div>
 					<?php if (!empty($device['model'])): ?>
-						<div style="color: var(--accent); font-size: 0.75rem; margin-bottom: 0.25rem;">
+						<div style="color: var(--text-secondary); font-size: 0.8125rem; margin-bottom: 0.25rem;">
 							<strong>Модель:</strong> <?= htmlspecialchars($device['model']) ?>
 						</div>
 					<?php endif; ?>
+					<div style="color: var(--text-secondary); font-size: 0.8125rem; margin-bottom: 0.25rem;">
+						<strong>Пользователь:</strong> <?= htmlspecialchars($device['username']) ?>
+					</div>
 					<div style="color: var(--text-secondary); font-size: 0.8125rem;">
-						<?= htmlspecialchars($device['ip']) ?>:<?= $device['port'] ?>
+						<strong>Адрес:</strong> <?= htmlspecialchars($device['ip']) ?>:<?= $device['port'] ?>
 					</div>
 				</div>
-				<div style="color: var(--text-secondary);"><?= htmlspecialchars($device['username']) ?></div>
-				<div style="color: var(--text-muted);">••••••••</div>
 				<div style="color: var(--text-secondary); font-size: 0.8125rem;">
 					<?= formatDbDateTime($device['created_at']) ?>
 				</div>
