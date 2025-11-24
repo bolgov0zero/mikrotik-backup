@@ -20,6 +20,8 @@ $page = $_GET['page'] ?? 'dashboard';
 // Обработка действий
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	switch ($_POST['action'] ?? '') {
+		// В разделе обработки POST запросов в index.php, обновим case 'add_device':
+		
 		case 'add_device':
 			$port = !empty($_POST['port']) ? intval($_POST['port']) : 22;
 			$stmt = $db->prepare('INSERT INTO devices (name, ip, port, username, password) VALUES (?, ?, ?, ?, ?)');
@@ -28,6 +30,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			$stmt->bindValue(3, $port, SQLITE3_INTEGER);
 			$stmt->bindValue(4, $_POST['username'], SQLITE3_TEXT);
 			$stmt->bindValue(5, $_POST['password'], SQLITE3_TEXT);
+			$stmt->execute();
+			
+			// Получаем ID добавленного устройства
+			$deviceId = $db->lastInsertRowID();
+			
+			// Получаем информацию об устройстве для определения модели
+			$deviceInfo = [
+				'ip' => $_POST['ip'],
+				'port' => $port,
+				'username' => $_POST['username'],
+				'password' => $_POST['password']
+			];
+			
+			$modelInfo = getMikrotikDeviceInfo($deviceInfo);
+			$model = $modelInfo['success'] ? $modelInfo['model'] : 'Unknown';
+			
+			// Обновляем устройство с информацией о модели
+			$stmt = $db->prepare('UPDATE devices SET model = ? WHERE id = ?');
+			$stmt->bindValue(1, $model, SQLITE3_TEXT);
+			$stmt->bindValue(2, $deviceId, SQLITE3_INTEGER);
 			$stmt->execute();
 			
 			logActivity($db, 'device_add', 'Добавлено новое устройство', $_POST['name']);
@@ -137,12 +159,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				// Используем вашу рабочую функцию бэкапирования
 				$backupResult = createMikrotikBackup($device, $type);
 				
+				// В case 'create_backup' в index.php обновим сохранение бэкапа:
+				
 				if ($backupResult['success']) {
 					// Сохраняем информацию о бэкапе в базу
-					$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename) VALUES (?, ?, ?)');
+					$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename, ros_version) VALUES (?, ?, ?, ?)');
 					$stmt->bindValue(1, $deviceId, SQLITE3_INTEGER);
 					$stmt->bindValue(2, $type, SQLITE3_TEXT);
 					$stmt->bindValue(3, $backupResult['filename'], SQLITE3_TEXT);
+					$stmt->bindValue(4, $backupResult['ros_version'], SQLITE3_TEXT);
 					$stmt->execute();
 					
 					$_SESSION['backup_success'] = $backupResult['message'];

@@ -12,6 +12,11 @@
 				<div>
 					<div style="font-weight: 600; margin-bottom: 0.25rem;">
 						<?= htmlspecialchars($device['name']) ?>
+						<?php if (!empty($device['model'])): ?>
+							<span class="badge badge-primary" style="margin-left: 0.5rem; font-size: 0.75rem;">
+								<?= htmlspecialchars($device['model']) ?>
+							</span>
+						<?php endif; ?>
 					</div>
 					<div style="color: var(--text-secondary); font-size: 0.8125rem;">
 						<?= htmlspecialchars($device['ip']) ?>:<?= $device['port'] ?>

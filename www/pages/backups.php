@@ -164,6 +164,14 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 					</div>
 				</div>
 				
+				<?php if (!empty($backup['ros_version'])): ?>
+				<div>
+					<span class="badge badge-success" title="Версия RouterOS">
+						ROS <?= htmlspecialchars($backup['ros_version']) ?>
+					</span>
+				</div>
+				<?php endif; ?>
+				
 				<div>
 					<span class="badge <?= $backup['type'] === 'full' ? 'badge-primary' : 'badge-warning' ?>">
 						<?= $backup['type'] === 'full' ? 'Бинарный' : 'Экспорт' ?>

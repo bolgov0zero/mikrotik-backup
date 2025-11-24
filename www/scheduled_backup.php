@@ -91,24 +91,15 @@ try {
 			$fullResult = createMikrotikBackup($device, 'full');
 			
 			if ($fullResult['success']) {
-				$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename) VALUES (?, ?, ?)');
+				$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename, ros_version) VALUES (?, ?, ?, ?)');
 				$stmt->bindValue(1, $device['id'], SQLITE3_INTEGER);
 				$stmt->bindValue(2, 'full', SQLITE3_TEXT);
 				$stmt->bindValue(3, $fullResult['filename'], SQLITE3_TEXT);
+				$stmt->bindValue(4, $fullResult['ros_version'], SQLITE3_TEXT);
 				
 				if ($stmt->execute()) {
 					$successCount++;
 					logToFile("  ✓ Полный бэкап создан и записан в БД: {$fullResult['filename']}");
-					
-					// Проверим что запись действительно есть в БД
-					$checkStmt = $db->prepare('SELECT COUNT(*) FROM backups WHERE filename = ?');
-					$checkStmt->bindValue(1, $fullResult['filename'], SQLITE3_TEXT);
-					$checkResult = $checkStmt->execute();
-					$count = $checkResult->fetchArray(SQLITE3_NUM)[0];
-					logToFile("  ✓ Проверка БД: найдено {$count} записей для файла {$fullResult['filename']}");
-				} else {
-					$errorCount++;
-					logToFile("  ✗ Ошибка записи полного бэкапа в БД: {$fullResult['filename']}");
 				}
 			} else {
 				$errorCount++;
@@ -123,22 +114,17 @@ try {
 			$configResult = createMikrotikBackup($device, 'config');
 			
 			if ($configResult['success']) {
-				$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename) VALUES (?, ?, ?)');
+				$stmt = $db->prepare('INSERT INTO backups (device_id, type, filename, ros_version) VALUES (?, ?, ?, ?)');
 				$stmt->bindValue(1, $device['id'], SQLITE3_INTEGER);
 				$stmt->bindValue(2, 'config', SQLITE3_TEXT);
 				$stmt->bindValue(3, $configResult['filename'], SQLITE3_TEXT);
+				$stmt->bindValue(4, $configResult['ros_version'], SQLITE3_TEXT);
 				
 				if ($stmt->execute()) {
 					$successCount++;
 					logToFile("  ✓ Экспорт конфигурации создан и записан в БД: {$configResult['filename']}");
-					
-					// Проверим что запись действительно есть в БД
-					$checkStmt = $db->prepare('SELECT COUNT(*) FROM backups WHERE filename = ?');
-					$checkStmt->bindValue(1, $configResult['filename'], SQLITE3_TEXT);
-					$checkResult = $checkStmt->execute();
-					$count = $checkResult->fetchArray(SQLITE3_NUM)[0];
-					logToFile("  ✓ Проверка БД: найдено {$count} записей для файла {$configResult['filename']}");
-				} else {
+				}
+			} else {
 					$errorCount++;
 					logToFile("  ✗ Ошибка записи экспорта в БД: {$configResult['filename']}");
 				}
