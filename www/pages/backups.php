@@ -280,15 +280,37 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 					<div class="file-name" id="viewFileName"></div>
 					<div class="file-size" id="viewFileSize"></div>
 				</div>
-				<button class="btn btn-primary btn-sm" onclick="copyBackupContent()">
-					<span class="icon icon-copy"></span>
-					Копировать
-				</button>
+				<div class="file-actions">
+					<!-- Поиск -->
+					<div class="search-container">
+						<input type="text" id="backupSearch" class="search-input" placeholder="Поиск..." 
+							   oninput="performSearch()" onkeydown="handleSearchKeydown(event)">
+						<div class="search-controls">
+							<button class="btn btn-outline btn-xs search-nav-btn" onclick="navigateSearch(-1)" title="Предыдущее совпадение">
+								←
+							</button>
+							<span class="search-counter" id="searchCounter">0/0</span>
+							<button class="btn btn-outline btn-xs search-nav-btn" onclick="navigateSearch(1)" title="Следующее совпадение">
+								→
+							</button>
+							<button class="btn btn-outline btn-xs search-close-btn" onclick="clearSearch()" title="Очистить поиск">
+								×
+							</button>
+						</div>
+					</div>
+					<button class="btn btn-primary btn-sm" onclick="copyBackupContent()">
+						<span class="icon icon-copy"></span>
+						Копировать
+					</button>
+				</div>
 			</div>
 		</div>
 		
 		<div class="file-content-wrapper">
-			<pre id="backupContent" class="file-content"></pre>
+			<div class="file-content-container">
+				<div class="line-numbers" id="lineNumbers"></div>
+				<pre id="backupContent" class="file-content" onclick="focusSearch()"></pre>
+			</div>
 		</div>
 		
 		<div class="modal-footer">
@@ -445,7 +467,9 @@ function viewBackupContent(backupId, filename) {
 
 // Функция для копирования содержимого
 function copyBackupContent() {
-	const content = document.getElementById('backupContent').textContent;
+	const contentElement = document.getElementById('backupContent');
+	const content = contentElement.textContent || contentElement.innerText;
+	
 	navigator.clipboard.writeText(content).then(() => {
 		// Компактное уведомление об успешном копировании
 		const copyBtn = event.target;
@@ -536,5 +560,247 @@ function createDownloadNotificationsContainer() {
 	container.className = 'download-notifications-container';
 	document.body.appendChild(container);
 	return container;
+}
+
+// Переменные для поиска
+let currentSearchMatches = [];
+let currentSearchIndex = -1;
+let searchTerm = '';
+
+// Функция для выполнения поиска
+function performSearch() {
+	const searchInput = document.getElementById('backupSearch');
+	const contentElement = document.getElementById('backupContent');
+	const searchCounter = document.getElementById('searchCounter');
+	
+	searchTerm = searchInput.value.trim();
+	
+	if (searchTerm === '') {
+		clearSearch();
+		return;
+	}
+	
+	// Сбрасываем предыдущие результаты
+	clearHighlights();
+	
+	// Получаем текст для поиска
+	const content = contentElement.textContent;
+	const lines = content.split('\n');
+	
+	// Ищем совпадения
+	currentSearchMatches = [];
+	
+	lines.forEach((line, lineIndex) => {
+		let position = 0;
+		while ((position = line.toLowerCase().indexOf(searchTerm.toLowerCase(), position)) !== -1) {
+			currentSearchMatches.push({
+				line: lineIndex,
+				start: position,
+				end: position + searchTerm.length
+			});
+			position += searchTerm.length;
+		}
+	});
+	
+	// Обновляем счетчик
+	updateSearchCounter();
+	
+	// Подсвечиваем совпадения
+	if (currentSearchMatches.length > 0) {
+		highlightMatches();
+		navigateSearch(1); // Переходим к первому совпадению
+	} else {
+		searchCounter.textContent = '0/0';
+	}
+}
+
+// Функция для подсветки совпадений
+function highlightMatches() {
+	const contentElement = document.getElementById('backupContent');
+	const content = contentElement.textContent;
+	const lines = content.split('\n');
+	
+	let highlightedContent = '';
+	
+	lines.forEach((line, lineIndex) => {
+		let highlightedLine = '';
+		let lastIndex = 0;
+		
+		// Находим все совпадения в текущей строке
+		const lineMatches = currentSearchMatches.filter(match => match.line === lineIndex)
+											   .sort((a, b) => a.start - b.start);
+		
+		lineMatches.forEach((match, matchIndex) => {
+			// Добавляем текст до совпадения
+			highlightedLine += escapeHtml(line.substring(lastIndex, match.start));
+			// Добавляем подсвеченное совпадение
+			highlightedLine += `<mark class="search-match">${escapeHtml(line.substring(match.start, match.end))}</mark>`;
+			lastIndex = match.end;
+		});
+		
+		// Добавляем оставшийся текст строки
+		highlightedLine += escapeHtml(line.substring(lastIndex));
+		highlightedContent += highlightedLine + '\n';
+	});
+	
+	contentElement.innerHTML = highlightedContent;
+	updateLineNumbers();
+}
+
+// Функция для очистки подсветки
+function clearHighlights() {
+	const contentElement = document.getElementById('backupContent');
+	const originalContent = contentElement.textContent || contentElement.innerText;
+	contentElement.textContent = originalContent;
+	updateLineNumbers();
+}
+
+// Функция для навигации по результатам поиска
+function navigateSearch(direction) {
+	if (currentSearchMatches.length === 0) return;
+	
+	// Убираем подсветку текущего активного элемента
+	const currentMatches = document.querySelectorAll('.search-match');
+	currentMatches.forEach(match => match.classList.remove('active'));
+	
+	// Вычисляем новый индекс
+	currentSearchIndex += direction;
+	
+	if (currentSearchIndex < 0) {
+		currentSearchIndex = currentSearchMatches.length - 1;
+	} else if (currentSearchIndex >= currentSearchMatches.length) {
+		currentSearchIndex = 0;
+	}
+	
+	// Подсвечиваем активный элемент
+	if (currentMatches[currentSearchIndex]) {
+		currentMatches[currentSearchIndex].classList.add('active');
+		
+		// Прокручиваем к активному элементу
+		currentMatches[currentSearchIndex].scrollIntoView({
+			behavior: 'smooth',
+			block: 'center'
+		});
+	}
+	
+	updateSearchCounter();
+}
+
+// Функция для обновления счетчика поиска
+function updateSearchCounter() {
+	const searchCounter = document.getElementById('searchCounter');
+	if (currentSearchMatches.length > 0) {
+		searchCounter.textContent = `${currentSearchIndex + 1}/${currentSearchMatches.length}`;
+	} else {
+		searchCounter.textContent = '0/0';
+	}
+}
+
+// Функция для очистки поиска
+function clearSearch() {
+	const searchInput = document.getElementById('backupSearch');
+	searchInput.value = '';
+	searchTerm = '';
+	currentSearchMatches = [];
+	currentSearchIndex = -1;
+	
+	document.getElementById('searchCounter').textContent = '0/0';
+	clearHighlights();
+}
+
+// Функция для обработки клавиш в поле поиска
+function handleSearchKeydown(event) {
+	if (event.key === 'Enter') {
+		event.preventDefault();
+		if (event.shiftKey) {
+			navigateSearch(-1);
+		} else {
+			navigateSearch(1);
+		}
+	} else if (event.key === 'Escape') {
+		clearSearch();
+		document.getElementById('backupSearch').blur();
+	}
+}
+
+// Функция для фокусировки на поле поиска при клике на контент
+function focusSearch() {
+	document.getElementById('backupSearch').focus();
+}
+
+// Функция для экранирования HTML
+function escapeHtml(text) {
+	const div = document.createElement('div');
+	div.textContent = text;
+	return div.innerHTML;
+}
+
+// Функция для обновления нумерации строк
+function updateLineNumbers() {
+	const contentElement = document.getElementById('backupContent');
+	const lineNumbersElement = document.getElementById('lineNumbers');
+	
+	const content = contentElement.textContent || contentElement.innerText;
+	const lineCount = content.split('\n').length;
+	
+	let numbersHtml = '';
+	for (let i = 1; i <= lineCount; i++) {
+		numbersHtml += `<div class="line-number">${i}</div>`;
+	}
+	
+	lineNumbersElement.innerHTML = numbersHtml;
+	
+	// Синхронизируем прокрутку
+	lineNumbersElement.scrollTop = contentElement.scrollTop;
+}
+
+// Обновляем функцию viewBackupContent для инициализации нумерации строк
+function viewBackupContent(backupId, filename) {
+	// Показываем загрузку
+	document.getElementById('viewFileName').textContent = filename;
+	document.getElementById('viewFileSize').textContent = 'Загрузка...';
+	document.getElementById('backupContent').textContent = 'Загрузка содержимого...';
+	
+	// Очищаем поиск
+	clearSearch();
+	
+	// Открываем модальное окно
+	openModal('viewBackupModal');
+	
+	// Загружаем содержимое файла
+	fetch(`view_backup.php?id=${backupId}`)
+		.then(response => {
+			if (!response.ok) {
+				throw new Error('Ошибка загрузки файла');
+			}
+			return response.json();
+		})
+		.then(data => {
+			if (data.success) {
+				document.getElementById('viewFileSize').textContent = `Размер: ${formatFileSize(data.size)}`;
+				document.getElementById('backupContent').textContent = data.content;
+				
+				// Инициализируем нумерацию строк
+				updateLineNumbers();
+				
+				// Синхронизируем прокрутку
+				const contentElement = document.getElementById('backupContent');
+				const lineNumbersElement = document.getElementById('lineNumbers');
+				
+				contentElement.onscroll = function() {
+					lineNumbersElement.scrollTop = contentElement.scrollTop;
+				};
+				
+			} else {
+				document.getElementById('viewFileSize').textContent = 'Ошибка';
+				document.getElementById('backupContent').textContent = 'Не удалось загрузить содержимое файла: ' + data.error;
+				updateLineNumbers();
+			}
+		})
+		.catch(error => {
+			document.getElementById('viewFileSize').textContent = 'Ошибка';
+			document.getElementById('backupContent').textContent = 'Ошибка загрузки: ' + error.message;
+			updateLineNumbers();
+		});
 }
 </script>
