@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Авторизация • Система бэкапов</title>
+	<title>MikroTik Backup System</title>
 	<link rel="stylesheet" href="style.css">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="auth-body">
 	<div class="auth-container">
 		<div class="auth-card">
-			<h1>Система бэкапов</h1>
+			<h1>MikroTik Backup System</h1>
 			<?php if ($error): ?>
 				<div class="error"><?= htmlspecialchars($error) ?></div>
 			<?php endif; ?>

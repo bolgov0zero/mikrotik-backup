@@ -301,7 +301,7 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Mikrotik Backup System</title>
+	<title>MikroTik Backup System</title>
 	<link rel="stylesheet" href="style.css">
 	<script>
 		async function loadVersion() {
@@ -326,7 +326,7 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 		<aside class="sidebar">
 			<div class="sidebar-content">
 				<div class="logo">
-					<h1>Mikrotik</h1>
+					<h1>MikroTik</h1>
 					<h2>Backup System</h2>
 				</div>
 				<nav>
@@ -395,7 +395,6 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 						<div class="user-avatar"><?= $userInitial ?></div>
 						<div class="user-details">
 							<div class="username"><?= htmlspecialchars($currentUser) ?></div>
-							<div class="user-role">Администратор</div>
 						</div>
 					</div>
 				</div>
