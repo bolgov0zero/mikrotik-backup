@@ -72,9 +72,15 @@ try {
 		
 		// Получаем список устройств
 		$db = initDatabase();
-		$devices = $db->query('SELECT * FROM devices');
-		$deviceCount = $db->querySingle('SELECT COUNT(*) FROM devices');
 		
+		// Сначала получаем все устройства в массив
+		$devicesResult = $db->query('SELECT * FROM devices');
+		$devices = [];
+		while ($device = $devicesResult->fetchArray(SQLITE3_ASSOC)) {
+			$devices[] = $device;
+		}
+		
+		$deviceCount = count($devices);
 		logToFile("Обнаружено устройств: {$deviceCount}");
 		
 		if ($deviceCount == 0) {
@@ -87,7 +93,8 @@ try {
 		$errorCount = 0;
 		$processedDevices = [];
 		
-		while ($device = $devices->fetchArray(SQLITE3_ASSOC)) {
+		// Теперь обрабатываем каждое устройство из массива
+		foreach ($devices as $device) {
 			$deviceInfo = "{$device['name']} ({$device['ip']}:{$device['port']})";
 			logToFile("Обработка устройства: {$deviceInfo}");
 			$processedDevices[] = $device['name'];
