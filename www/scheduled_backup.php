@@ -18,42 +18,48 @@ function shouldRunScheduledBackup() {
 		$db = initDatabase();
 		$backupTime = getSetting($db, 'backup_schedule_time', '02:00');
 		$currentTime = date('H:i');
-		$today = date('Y-m-d');
 		
 		logToFile("Проверка расписания: текущее время {$currentTime}, настроенное время {$backupTime}");
 		
-		// Проверяем, был ли уже выполнен бэкап сегодня
-		if (wasBackupDoneToday($db)) {
-			$lastBackupTime = getLastBackupTime($db);
-			logToFile("Бэкап уже выполнялся сегодня: {$lastBackupTime}");
-			$db->close();
-			return false;
-		}
-		
-		// Преобразуем время в timestamp для сравнения
-		$backupTimestamp = strtotime($backupTime);
-		$currentTimestamp = strtotime($currentTime);
-		
-		// Бэкап должен запуститься если текущее время >= настроенного времени
-		$timeDiff = $currentTimestamp - $backupTimestamp;
-		
-		logToFile("Разница во времени: " . round($timeDiff / 60, 1) . " минут");
-		
-		$db->close();
-		
-		// Запускаем если текущее время в пределах 5 минут после настроенного времени
-		if ($timeDiff >= 0 && $timeDiff <= 300) { // 5 минут в секундах
+		// Сравниваем время как строки для точного совпадения
+		if ($currentTime === $backupTime) {
+			// Проверяем блокировку - выполнялся ли уже бэкап в это время сегодня
+			$lastBackupDate = getSetting($db, 'last_scheduled_backup_date', '');
+			$lastBackupTime = getSetting($db, 'last_scheduled_backup_time', '');
+			$today = date('Y-m-d');
+			
+			// Если бэкап уже выполнялся сегодня в это же время - пропускаем
+			if ($lastBackupDate === $today && $lastBackupTime === $backupTime) {
+				logToFile("Бэкап уже выполнялся сегодня в {$backupTime}, пропускаем");
+				$db->close();
+				return false;
+			}
+			
 			logToFile("Время соответствует расписанию, запускаем бэкап");
+			$db->close();
 			return true;
 		}
 		
 		logToFile("Время не соответствует расписанию для выполнения бэкапа");
+		$db->close();
 		return false;
 		
 	} catch (Exception $e) {
 		logToFile("Ошибка при проверке расписания: " . $e->getMessage());
 		return false;
 	}
+}
+
+// Функция для обновления времени последнего бэкапа
+function updateLastBackupTime($db) {
+	$backupTime = getSetting($db, 'backup_schedule_time', '02:00');
+	$today = date('Y-m-d');
+	
+	// Обновляем настройки времени последнего бэкапа
+	setSetting($db, 'last_scheduled_backup_date', $today);
+	setSetting($db, 'last_scheduled_backup_time', $backupTime);
+	
+	logToFile("Обновлено время последнего бэкапа: {$today} {$backupTime}");
 }
 
 // Основная логика
@@ -100,13 +106,6 @@ try {
 				if ($stmt->execute()) {
 					$successCount++;
 					logToFile("  ✓ Полный бэкап создан и записан в БД: {$fullResult['filename']}");
-					
-					// Проверим что запись действительно есть в БД
-					$checkStmt = $db->prepare('SELECT COUNT(*) FROM backups WHERE filename = ?');
-					$checkStmt->bindValue(1, $fullResult['filename'], SQLITE3_TEXT);
-					$checkResult = $checkStmt->execute();
-					$count = $checkResult->fetchArray(SQLITE3_NUM)[0];
-					logToFile("  ✓ Проверка БД: найдено {$count} записей для файла {$fullResult['filename']}");
 				} else {
 					$errorCount++;
 					logToFile("  ✗ Ошибка записи полного бэкапа в БД: {$fullResult['filename']}");
@@ -133,13 +132,6 @@ try {
 				if ($stmt->execute()) {
 					$successCount++;
 					logToFile("  ✓ Экспорт конфигурации создан и записан в БД: {$configResult['filename']}");
-					
-					// Проверим что запись действительно есть в БД
-					$checkStmt = $db->prepare('SELECT COUNT(*) FROM backups WHERE filename = ?');
-					$checkStmt->bindValue(1, $configResult['filename'], SQLITE3_TEXT);
-					$checkResult = $checkStmt->execute();
-					$count = $checkResult->fetchArray(SQLITE3_NUM)[0];
-					logToFile("  ✓ Проверка БД: найдено {$count} записей для файла {$configResult['filename']}");
 				} else {
 					$errorCount++;
 					logToFile("  ✗ Ошибка записи экспорта в БД: {$configResult['filename']}");
@@ -155,6 +147,9 @@ try {
 		
 		$message = "Автоматический бэкап завершен. Успешно: {$successCount}, Ошибок: {$errorCount}";
 		logToFile(">>> РЕЗУЛЬТАТ БЭКАПА: {$message} <<<");
+		
+		// Обновляем время последнего бэкапа
+		updateLastBackupTime($db);
 		
 		// Логируем в базу для отображения в интерфейсе
 		logActivity($db, 'scheduled_backup', $message);
