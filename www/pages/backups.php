@@ -514,23 +514,12 @@ function trackDownload(backupId, filename) {
 
 // Функция для показа уведомления о скачивании
 function showDownloadNotification(filename) {
-	// Создаем элемент уведомления
+	const notificationsContainer = document.getElementById('notifications-container');
 	const notification = document.createElement('div');
 	notification.className = 'download-notification';
-	notification.innerHTML = `
-		<div class="download-notification-content">
-			<span class="icon icon-download"></span>
-			<div class="download-notification-body">
-				<div class="download-file-info">Скачивание бэкапа: ${filename}</div>
-				<div class="download-user-info">Пользователь: <?= htmlspecialchars($_SESSION['username']) ?></div>
-				<div class="download-time-info">Время: ${new Date().toLocaleTimeString()}</div>
-			</div>
-		</div>
-	`;
+	notification.textContent = 'Бэкап успешно скачан';
 	
-	// Добавляем уведомление в контейнер
-	const container = document.getElementById('downloadNotifications') || createDownloadNotificationsContainer();
-	container.appendChild(notification);
+	notificationsContainer.appendChild(notification);
 	
 	// Автоматически удаляем уведомление через 3 секунды
 	setTimeout(() => {

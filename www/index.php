@@ -362,7 +362,7 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>MikroTik Backup System</title>
-	<link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="main.css">
 	<script>
 		async function loadVersion() {
 			try {
@@ -460,33 +460,37 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 				</div>
 			</div>
 
-			<?php
-			// Показываем уведомления с автоматическим скрытием
-			if (isset($_SESSION['backup_success'])) {
-				echo '<div class="success auto-hide">' . $_SESSION['backup_success'] . '</div>';
-				unset($_SESSION['backup_success']);
-			}
-			if (isset($_SESSION['backup_error'])) {
-				echo '<div class="error auto-hide">' . $_SESSION['backup_error'] . '</div>';
-				unset($_SESSION['backup_error']);
-			}
-			if (isset($_SESSION['test_success'])) {
-				echo '<div class="success auto-hide">' . $_SESSION['test_success'] . '</div>';
-				unset($_SESSION['test_success']);
-			}
-			if (isset($_SESSION['test_error'])) {
-				echo '<div class="error auto-hide">' . $_SESSION['test_error'] . '</div>';
-				unset($_SESSION['test_error']);
-			}
-			if (isset($_SESSION['settings_success'])) {
-				echo '<div class="success auto-hide">' . $_SESSION['settings_success'] . '</div>';
-				unset($_SESSION['settings_success']);
-			}
-			if (isset($_SESSION['settings_error'])) {
-				echo '<div class="error auto-hide">' . $_SESSION['settings_error'] . '</div>';
-				unset($_SESSION['settings_error']);
-			}
+			<div id="notifications-container">
+				<?php
+				// Показываем уведомления с автоматическим скрытием
+				if (isset($_SESSION['backup_success'])) {
+					echo '<div class="success auto-hide">' . $_SESSION['backup_success'] . '</div>';
+					unset($_SESSION['backup_success']);
+				}
+				if (isset($_SESSION['backup_error'])) {
+					echo '<div class="error auto-hide">' . $_SESSION['backup_error'] . '</div>';
+					unset($_SESSION['backup_error']);
+				}
+				if (isset($_SESSION['test_success'])) {
+					echo '<div class="success auto-hide">' . $_SESSION['test_success'] . '</div>';
+					unset($_SESSION['test_success']);
+				}
+				if (isset($_SESSION['test_error'])) {
+					echo '<div class="error auto-hide">' . $_SESSION['test_error'] . '</div>';
+					unset($_SESSION['test_error']);
+				}
+				if (isset($_SESSION['settings_success'])) {
+					echo '<div class="success auto-hide">' . $_SESSION['settings_success'] . '</div>';
+					unset($_SESSION['settings_success']);
+				}
+				if (isset($_SESSION['settings_error'])) {
+					echo '<div class="error auto-hide">' . $_SESSION['settings_error'] . '</div>';
+					unset($_SESSION['settings_error']);
+				}
+				?>
+			</div>
 
+			<?php
 			// Подключение страниц
 			switch ($page) {
 				case 'dashboard':
@@ -807,23 +811,12 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 
 		// Функция для показа уведомления о скачивании
 		function showDownloadNotification(filename) {
-			// Создаем элемент уведомления
+			const notificationsContainer = document.getElementById('notifications-container');
 			const notification = document.createElement('div');
 			notification.className = 'download-notification';
-			notification.innerHTML = `
-				<div class="download-notification-content">
-					<span class="icon icon-download"></span>
-					<div class="download-notification-body">
-						<div class="download-file-info">Скачивание бэкапа: ${filename}</div>
-						<div class="download-user-info">Пользователь: <?= htmlspecialchars($_SESSION['username']) ?></div>
-						<div class="download-time-info">Время: ${new Date().toLocaleTimeString()}</div>
-					</div>
-				</div>
-			`;
+			notification.textContent = 'Бэкап успешно скачан';
 			
-			// Добавляем уведомление в контейнер
-			const container = document.getElementById('downloadNotifications') || createDownloadNotificationsContainer();
-			container.appendChild(notification);
+			notificationsContainer.appendChild(notification);
 			
 			// Автоматически удаляем уведомление через 3 секунды
 			setTimeout(() => {
@@ -831,15 +824,6 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 					notification.remove();
 				}
 			}, 3000);
-		}
-
-		// Функция для создания контейнера уведомлений
-		function createDownloadNotificationsContainer() {
-			const container = document.createElement('div');
-			container.id = 'downloadNotifications';
-			container.className = 'download-notifications-container';
-			document.body.appendChild(container);
-			return container;
 		}
 
 		// Функция для отслеживания скачивания и показа уведомления
