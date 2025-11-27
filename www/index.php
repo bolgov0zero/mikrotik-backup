@@ -461,29 +461,29 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 			</div>
 
 			<?php
-			// Показываем уведомления
+			// Показываем уведомления с автоматическим скрытием
 			if (isset($_SESSION['backup_success'])) {
-				echo '<div class="success">' . $_SESSION['backup_success'] . '</div>';
+				echo '<div class="success auto-hide">' . $_SESSION['backup_success'] . '</div>';
 				unset($_SESSION['backup_success']);
 			}
 			if (isset($_SESSION['backup_error'])) {
-				echo '<div class="error">' . $_SESSION['backup_error'] . '</div>';
+				echo '<div class="error auto-hide">' . $_SESSION['backup_error'] . '</div>';
 				unset($_SESSION['backup_error']);
 			}
 			if (isset($_SESSION['test_success'])) {
-				echo '<div class="success">' . $_SESSION['test_success'] . '</div>';
+				echo '<div class="success auto-hide">' . $_SESSION['test_success'] . '</div>';
 				unset($_SESSION['test_success']);
 			}
 			if (isset($_SESSION['test_error'])) {
-				echo '<div class="error">' . $_SESSION['test_error'] . '</div>';
+				echo '<div class="error auto-hide">' . $_SESSION['test_error'] . '</div>';
 				unset($_SESSION['test_error']);
 			}
 			if (isset($_SESSION['settings_success'])) {
-				echo '<div class="success">' . $_SESSION['settings_success'] . '</div>';
+				echo '<div class="success auto-hide">' . $_SESSION['settings_success'] . '</div>';
 				unset($_SESSION['settings_success']);
 			}
 			if (isset($_SESSION['settings_error'])) {
-				echo '<div class="error">' . $_SESSION['settings_error'] . '</div>';
+				echo '<div class="error auto-hide">' . $_SESSION['settings_error'] . '</div>';
 				unset($_SESSION['settings_error']);
 			}
 
@@ -803,6 +803,52 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 			const sizes = ['Bytes', 'KB', 'MB', 'GB'];
 			const i = Math.floor(Math.log(bytes) / Math.log(k));
 			return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+		}
+
+		// Функция для показа уведомления о скачивании
+		function showDownloadNotification(filename) {
+			// Создаем элемент уведомления
+			const notification = document.createElement('div');
+			notification.className = 'download-notification';
+			notification.innerHTML = `
+				<div class="download-notification-content">
+					<span class="icon icon-download"></span>
+					<div class="download-notification-body">
+						<div class="download-file-info">Скачивание бэкапа: ${filename}</div>
+						<div class="download-user-info">Пользователь: <?= htmlspecialchars($_SESSION['username']) ?></div>
+						<div class="download-time-info">Время: ${new Date().toLocaleTimeString()}</div>
+					</div>
+				</div>
+			`;
+			
+			// Добавляем уведомление в контейнер
+			const container = document.getElementById('downloadNotifications') || createDownloadNotificationsContainer();
+			container.appendChild(notification);
+			
+			// Автоматически удаляем уведомление через 3 секунды
+			setTimeout(() => {
+				if (notification.parentElement) {
+					notification.remove();
+				}
+			}, 3000);
+		}
+
+		// Функция для создания контейнера уведомлений
+		function createDownloadNotificationsContainer() {
+			const container = document.createElement('div');
+			container.id = 'downloadNotifications';
+			container.className = 'download-notifications-container';
+			document.body.appendChild(container);
+			return container;
+		}
+
+		// Функция для отслеживания скачивания и показа уведомления
+		function trackDownload(backupId, filename) {
+			// Создаем уведомление о скачивании
+			showDownloadNotification(filename);
+			
+			// Продолжаем стандартное скачивание
+			return true;
 		}
 	</script>
 </body>
