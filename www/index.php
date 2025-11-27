@@ -17,6 +17,21 @@ if (!isAuthenticated()) {
 $db = initDatabase();
 $page = $_GET['page'] ?? 'dashboard';
 
+// Обработка AJAX запроса для получения данных устройства
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'get_device' && isset($_GET['id'])) {
+	$deviceId = intval($_GET['id']);
+	$device = getDeviceById($db, $deviceId);
+	
+	if ($device) {
+		header('Content-Type: application/json');
+		echo json_encode(['success' => true, 'device' => $device]);
+	} else {
+		header('Content-Type: application/json');
+		echo json_encode(['success' => false, 'error' => 'Устройство не найдено']);
+	}
+	exit;
+}
+
 // Обработка действий
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	switch ($_POST['action'] ?? '') {
@@ -51,6 +66,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			$stmt->execute();
 			
 			logActivity($db, 'device_add', 'Добавлено новое устройство', $_POST['name']);
+			break;
+			
+		case 'edit_device':
+			$deviceId = $_POST['device_id'];
+			$port = !empty($_POST['port']) ? intval($_POST['port']) : 22;
+			
+			// Получаем текущие данные устройства
+			$stmt = $db->prepare('SELECT * FROM devices WHERE id = ?');
+			$stmt->bindValue(1, $deviceId, SQLITE3_INTEGER);
+			$currentDevice = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
+			
+			if ($currentDevice) {
+				// Если пароль не указан, используем старый
+				$password = !empty($_POST['password']) ? $_POST['password'] : $currentDevice['password'];
+				
+				// Обновляем основные данные устройства
+				$stmt = $db->prepare('UPDATE devices SET name = ?, ip = ?, port = ?, username = ?, password = ? WHERE id = ?');
+				$stmt->bindValue(1, $_POST['name'], SQLITE3_TEXT);
+				$stmt->bindValue(2, $_POST['ip'], SQLITE3_TEXT);
+				$stmt->bindValue(3, $port, SQLITE3_INTEGER);
+				$stmt->bindValue(4, $_POST['username'], SQLITE3_TEXT);
+				$stmt->bindValue(5, $password, SQLITE3_TEXT);
+				$stmt->bindValue(6, $deviceId, SQLITE3_INTEGER);
+				$stmt->execute();
+				
+				// Получаем обновленную информацию об устройстве для определения модели
+				$deviceInfo = [
+					'ip' => $_POST['ip'],
+					'port' => $port,
+					'username' => $_POST['username'],
+					'password' => $password
+				];
+				
+				$modelInfo = getMikrotikDeviceInfo($deviceInfo);
+				$model = $modelInfo['success'] ? $modelInfo['model'] : 'Unknown';
+				
+				// Обновляем модель устройства
+				$stmt = $db->prepare('UPDATE devices SET model = ? WHERE id = ?');
+				$stmt->bindValue(1, $model, SQLITE3_TEXT);
+				$stmt->bindValue(2, $deviceId, SQLITE3_INTEGER);
+				$stmt->execute();
+				
+				logActivity($db, 'device_edit', 'Устройство отредактировано', $_POST['name']);
+				$_SESSION['settings_success'] = 'Устройство "' . $_POST['name'] . '" успешно обновлено';
+			}
 			break;
 			
 		case 'delete_device':
@@ -488,6 +548,50 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 		</div>
 	</div>
 
+	<!-- Модальное окно редактирования устройства -->
+	<div id="editDeviceModal" class="modal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h3>Редактировать устройство</h3>
+				<button class="modal-close" onclick="closeModal('editDeviceModal')">×</button>
+			</div>
+			<form method="POST">
+				<input type="hidden" name="action" value="edit_device">
+				<input type="hidden" name="device_id" id="edit_device_id">
+				<div class="form-group">
+					<label>Имя устройства</label>
+					<input type="text" name="name" id="edit_name" class="form-control" placeholder="Введите имя устройства" required>
+				</div>
+				<div class="form-group">
+					<label>IP адрес</label>
+					<input type="text" name="ip" id="edit_ip" class="form-control" placeholder="Введите IP адрес" required>
+				</div>
+				<div class="form-group">
+					<label>Порт SSH</label>
+					<input type="number" name="port" id="edit_port" class="form-control" value="22" min="1" max="65535">
+				</div>
+				<div class="form-group">
+					<label>Логин SSH</label>
+					<input type="text" name="username" id="edit_username" class="form-control" placeholder="Введите логин" required>
+				</div>
+				<div class="form-group">
+					<label>Пароль SSH</label>
+					<input type="password" name="password" id="edit_password" class="form-control" placeholder="Введите пароль (оставьте пустым, если не меняется)">
+					<div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem;">
+						Оставьте пустым, если не хотите менять пароль
+					</div>
+				</div>
+				<div class="form-group">
+					<button type="submit" class="btn btn-primary">
+						<span class="icon icon-save"></span>
+						Сохранить изменения
+					</button>
+					<button type="button" class="btn btn-outline" onclick="closeModal('editDeviceModal')">Отмена</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
 	<div id="backupModal" class="modal modal-compact">
 		<div class="modal-content">
 			<div class="modal-header">
@@ -546,6 +650,31 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 		function openBackupModal(deviceId) {
 			document.getElementById('backup_device_id').value = deviceId;
 			openModal('backupModal');
+		}
+
+		function editDevice(deviceId) {
+			// Загружаем данные устройства через AJAX
+			fetch(`?ajax=get_device&id=${deviceId}`)
+				.then(response => response.json())
+				.then(data => {
+					if (data.success) {
+						// Заполняем форму данными устройства
+						document.getElementById('edit_device_id').value = data.device.id;
+						document.getElementById('edit_name').value = data.device.name;
+						document.getElementById('edit_ip').value = data.device.ip;
+						document.getElementById('edit_port').value = data.device.port;
+						document.getElementById('edit_username').value = data.device.username;
+						document.getElementById('edit_password').value = '';
+						
+						// Открываем модальное окно
+						openModal('editDeviceModal');
+					} else {
+						alert('Ошибка загрузки данных устройства: ' + data.error);
+					}
+				})
+				.catch(error => {
+					alert('Ошибка загрузки данных устройства: ' + error);
+				});
 		}
 	
 		function testConnection(deviceId) {
