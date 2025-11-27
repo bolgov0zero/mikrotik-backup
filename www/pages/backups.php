@@ -508,49 +508,25 @@ function trackDownload(backupId, filename) {
 	// Создаем уведомление о скачивании
 	showDownloadNotification(filename);
 	
-	// Дополнительная логика может быть добавлена здесь
-	// Например, отправка аналитики на сервер
-	
 	// Продолжаем стандартное скачивание
 	return true;
 }
 
 // Функция для показа уведомления о скачивании
 function showDownloadNotification(filename) {
-	// Создаем элемент уведомления
+	const notificationsContainer = document.getElementById('notifications-container');
 	const notification = document.createElement('div');
 	notification.className = 'download-notification';
-	notification.innerHTML = `
-		<div class="download-notification-content">
-			<div class="download-notification-header">
-				<span class="icon icon-download" style="background-color: var(--success);"></span>
-				<span class="download-notification-title">Скачивание бэкапа</span>
-				<button class="download-notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
-			</div>
-			<div class="download-notification-body">
-				<div class="download-file-info">
-					<strong>Файл:</strong> ${filename}
-				</div>
-				<div class="download-user-info">
-					<strong>Пользователь:</strong> <?= htmlspecialchars($_SESSION['username']) ?>
-				</div>
-				<div class="download-time-info">
-					<strong>Время:</strong> ${new Date().toLocaleTimeString()}
-				</div>
-			</div>
-		</div>
-	`;
+	notification.textContent = 'Бэкап успешно скачан';
 	
-	// Добавляем уведомление в контейнер
-	const container = document.getElementById('downloadNotifications') || createDownloadNotificationsContainer();
-	container.appendChild(notification);
+	notificationsContainer.appendChild(notification);
 	
-	// Автоматически удаляем уведомление через 5 секунд
+	// Автоматически удаляем уведомление через 3 секунды
 	setTimeout(() => {
 		if (notification.parentElement) {
 			notification.remove();
 		}
-	}, 5000);
+	}, 3000);
 }
 
 // Функция для создания контейнера уведомлений

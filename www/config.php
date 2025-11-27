@@ -439,4 +439,20 @@ function logBackupDownload($db, $backupId, $username) {
 		logActivity($db, 'backup_download', $description, $backup['device_name'], $backup['filename']);
 	}
 }
+
+// Функция для получения данных устройства по ID
+function getDeviceById($db, $deviceId) {
+	$stmt = $db->prepare('SELECT * FROM devices WHERE id = ?');
+	$stmt->bindValue(1, $deviceId, SQLITE3_INTEGER);
+	$result = $stmt->execute();
+	$device = $result->fetchArray(SQLITE3_ASSOC);
+	
+	if ($device) {
+		// Не возвращаем пароль в целях безопасности
+		unset($device['password']);
+		return $device;
+	}
+	
+	return null;
+}
 ?>

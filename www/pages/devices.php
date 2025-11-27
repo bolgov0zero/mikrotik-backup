@@ -37,6 +37,10 @@
 						<span class="icon icon-backup"></span>
 						Бэкап
 					</button>
+					<button class="btn btn-outline btn-sm" onclick="editDevice(<?= $device['id'] ?>)">
+						<span class="icon icon-edit"></span>
+						Редакт.
+					</button>
 					<button class="btn btn-danger btn-sm" onclick="deleteDevice(<?= $device['id'] ?>, '<?= htmlspecialchars($device['name']) ?>')">
 						<span class="icon icon-delete"></span>
 						Удалить

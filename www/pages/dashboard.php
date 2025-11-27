@@ -83,6 +83,7 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 						<option value="<?= $type['action_type'] ?>" <?= $filterActivityType == $type['action_type'] ? 'selected' : '' ?>>
 							<?= match($type['action_type']) {
 								'device_add' => 'Добавление устройства',
+								'device_edit' => 'Редактирование устройства',
 								'device_delete' => 'Удаление устройства',
 								'backup_create' => 'Создание бэкапа',
 								'backup_delete' => 'Удаление бэкапа',
@@ -137,6 +138,7 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 					<span class="active-filter">
 						Тип: <?= match($filterActivityType) {
 							'device_add' => 'Добавление устройства',
+							'device_edit' => 'Редактирование устройства',
 							'device_delete' => 'Удаление устройства',
 							'backup_create' => 'Создание бэкапа',
 							'backup_delete' => 'Удаление бэкапа',
@@ -196,6 +198,7 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 						?>">
 							<?= match($activity['action_type']) {
 								'device_add' => 'Добавление устройства',
+								'device_edit' => 'Редактирование устройства',
 								'device_delete' => 'Удаление устройства',
 								'backup_create' => 'Создание бэкапа',
 								'backup_delete' => 'Удаление бэкапа',
