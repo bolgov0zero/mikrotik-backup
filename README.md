@@ -18,7 +18,7 @@
 Пароль: admin
 *Поменяйте пароль и создайте другую учетную запись.
 
-<img src="screenshots/1.png" alt="Script" width="450" height="280">  <img src="screenshots/2.png" alt="Ads" width="300" height="230">
+<img src="screenshots/1.png" alt="Script" width="450" height="300">  <img src="screenshots/2.png" alt="Ads" width="300" height="230">
 
 ## 2. Ручная установка(без скрипта ads):
 
