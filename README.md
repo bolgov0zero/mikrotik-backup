@@ -20,7 +20,7 @@
 
 <img src="screenshots/1.png" alt="Script" width="450" height="300">  <img src="screenshots/2.png" alt="Ads" width="300" height="230">
 
-## 2. Ручная установка(без скрипта ads):
+## 2. Ручная установка(без скрипта backup):
 
  - Создаем файл docker-compose.yml
  ```bash
