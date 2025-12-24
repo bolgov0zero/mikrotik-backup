@@ -46,7 +46,6 @@ services:
     volumes:
       - backup_data:/var/www/html/backup
       - db_data:/var/www/html/db
-    restart: unless-stopped
 
 volumes:
   backup_data:
