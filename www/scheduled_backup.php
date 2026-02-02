@@ -161,6 +161,27 @@ try {
 		// Логируем в базу для отображения в интерфейсе
 		logActivity($db, 'scheduled_backup', $message);
 		
+		// Отправляем уведомление в Telegram
+		$telegram_message = "🔄 <b>Автоматический бэкап MikroTik завершен</b>\n";
+		$telegram_message .= "📅 Дата: " . date('d.m.Y') . "\n";
+		$telegram_message .= "⏰ Время: " . date('H:i') . "\n";
+		$telegram_message .= "📊 Результат:\n";
+		$telegram_message .= "   ✅ Успешно: {$successCount}\n";
+		$telegram_message .= "   ❌ Ошибок: {$errorCount}\n";
+		
+		if ($errorCount > 0) {
+			$telegram_message .= "\n⚠️ <b>ВНИМАНИЕ:</b> Есть ошибки при выполнении бэкапа!\n";
+			$telegram_message .= "Обработанные устройства: " . implode(', ', $processedDevices);
+		}
+		
+		// Отправляем уведомление
+		$telegramSent = sendTelegramNotification($telegram_message);
+		if ($telegramSent) {
+			logToFile("✅ Уведомление отправлено в Telegram");
+		} else {
+			logToFile("ℹ️ Уведомление в Telegram не отправлено (возможно, не настроено)");
+		}
+		
 		logToFile("=== ЗАПЛАНИРОВАННЫЙ БЭКАП УСПЕШНО ВЫПОЛНЕН ===");
 		
 		$db->close();
@@ -177,6 +198,14 @@ try {
 	try {
 		$db = initDatabase();
 		logActivity($db, 'scheduled_backup_error', $errorMsg);
+		
+		// Также отправляем уведомление об ошибке в Telegram
+		$telegram_error_msg = "❌ <b>КРИТИЧЕСКАЯ ОШИБКА БЭКАПА</b>\n";
+		$telegram_error_msg .= "📅 Дата: " . date('d.m.Y H:i') . "\n";
+		$telegram_error_msg .= "💥 Ошибка: " . $e->getMessage();
+		
+		sendTelegramNotification($telegram_error_msg);
+		
 		$db->close();
 	} catch (Exception $e2) {
 		logToFile("Не удалось записать ошибку в базу: {$e2->getMessage()}");

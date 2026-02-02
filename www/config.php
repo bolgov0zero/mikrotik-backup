@@ -82,6 +82,15 @@ function initDatabase() {
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	)');
 	
+	// Добавляем таблицу для настроек Telegram
+	$db->exec('CREATE TABLE IF NOT EXISTS telegram_settings (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		bot_token TEXT,
+		chat_id TEXT,
+		enabled BOOLEAN DEFAULT 1,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)');
+	
 	// Добавляем пользователя по умолчанию только если таблица пользователей пустая
 	$userCount = $db->querySingle('SELECT COUNT(*) FROM users');
 	if ($userCount == 0) {
@@ -103,6 +112,10 @@ function initDatabase() {
 		$stmt->execute();
 	}
 	
+	// Добавляем настройки по умолчанию для Telegram
+	$stmt = $db->prepare('INSERT OR IGNORE INTO telegram_settings (id, bot_token, chat_id, enabled) VALUES (1, "", "", 0)');
+	$stmt->execute();
+	
 	return $db;
 }
 
@@ -122,6 +135,124 @@ function setSetting($db, $key, $value) {
 	$stmt->bindValue(1, $key, SQLITE3_TEXT);
 	$stmt->bindValue(2, $value, SQLITE3_TEXT);
 	return $stmt->execute();
+}
+
+// Функция для отправки уведомления в Telegram
+function sendTelegramNotification($message) {
+	try {
+		$db = initDatabase();
+		
+		// Получаем настройки Telegram
+		$stmt = $db->prepare('SELECT bot_token, chat_id, enabled FROM telegram_settings WHERE id = 1');
+		$result = $stmt->execute();
+		$settings = $result->fetchArray(SQLITE3_ASSOC);
+		
+		$db->close();
+		
+		// Проверяем включены ли уведомления и есть ли токен и chat_id
+		if (!$settings || !$settings['enabled'] || empty($settings['bot_token']) || empty($settings['chat_id'])) {
+			return false;
+		}
+		
+		$bot_token = $settings['bot_token'];
+		$chat_id = $settings['chat_id'];
+		
+		// Формируем URL для отправки сообщения
+		$url = "https://api.telegram.org/bot{$bot_token}/sendMessage";
+		
+		// Данные для отправки
+		$data = [
+			'chat_id' => $chat_id,
+			'text' => $message,
+			'parse_mode' => 'HTML',
+			'disable_web_page_preview' => true
+		];
+		
+		// Отправка через cURL
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_POST, true);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+		
+		$response = curl_exec($ch);
+		$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+		
+		return $http_code == 200;
+		
+	} catch (Exception $e) {
+		error_log("Telegram notification error: " . $e->getMessage());
+		return false;
+	}
+}
+
+// Функция для получения настроек Telegram
+function getTelegramSettings($db) {
+	$stmt = $db->prepare('SELECT bot_token, chat_id, enabled FROM telegram_settings WHERE id = 1');
+	$result = $stmt->execute();
+	return $result->fetchArray(SQLITE3_ASSOC) ?: ['bot_token' => '', 'chat_id' => '', 'enabled' => 0];
+}
+
+// Функция для сохранения настроек Telegram
+function saveTelegramSettings($db, $bot_token, $chat_id, $enabled) {
+	$stmt = $db->prepare('UPDATE telegram_settings SET bot_token = ?, chat_id = ?, enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1');
+	$stmt->bindValue(1, $bot_token, SQLITE3_TEXT);
+	$stmt->bindValue(2, $chat_id, SQLITE3_TEXT);
+	$stmt->bindValue(3, $enabled ? 1 : 0, SQLITE3_INTEGER);
+	return $stmt->execute();
+}
+
+// Функция для проверки настроек Telegram
+function testTelegramConnection($bot_token, $chat_id) {
+	try {
+		$url = "https://api.telegram.org/bot{$bot_token}/getMe";
+		
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+		
+		$response = curl_exec($ch);
+		$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+		
+		if ($http_code == 200) {
+			$data = json_decode($response, true);
+			if ($data['ok']) {
+				// Пробуем отправить тестовое сообщение
+				$test_url = "https://api.telegram.org/bot{$bot_token}/sendMessage";
+				$test_data = [
+					'chat_id' => $chat_id,
+					'text' => '✅ Тестовое сообщение от системы бэкапов MikroTik',
+					'parse_mode' => 'HTML'
+				];
+				
+				$ch = curl_init();
+				curl_setopt($ch, CURLOPT_URL, $test_url);
+				curl_setopt($ch, CURLOPT_POST, true);
+				curl_setopt($ch, CURLOPT_POSTFIELDS, $test_data);
+				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+				curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+				
+				$test_response = curl_exec($ch);
+				$test_http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+				curl_close($ch);
+				
+				if ($test_http_code == 200) {
+					return ['success' => true, 'message' => '✅ Настройки корректны, тестовое сообщение отправлено'];
+				} else {
+					return ['success' => false, 'message' => '❌ Не удалось отправить сообщение. Проверьте chat_id'];
+				}
+			}
+		}
+		
+		return ['success' => false, 'message' => '❌ Неверный токен бота'];
+		
+	} catch (Exception $e) {
+		return ['success' => false, 'message' => '❌ Ошибка: ' . $e->getMessage()];
+	}
 }
 
 // Функция для проверки, был ли уже выполнен бэкап сегодня
