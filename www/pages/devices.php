@@ -99,11 +99,12 @@ $devices->reset();
 
 <style>
 .backup-status-indicator {
-	width: 12px;
-	height: 12px;
+	width: 6px;
+	height: 6px;
 	border-radius: 50%;
 	display: inline-block;
 	position: relative;
+	padding: 5px !important;
 }
 
 .backup-status-indicator.success {
