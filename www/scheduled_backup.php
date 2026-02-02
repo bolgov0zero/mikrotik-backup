@@ -180,10 +180,9 @@ try {
 		$telegram_message .= "<b>Ошибок:</b> <i>{$errorCount}</i></blockquote>\n";
 		
 		if ($errorCount > 0 && !empty($failedDevices)) {
-			$telegram_message .= "\n⚠️ <b>ВНИМАНИЕ:</b> Есть ошибки при выполнении бэкапа!\n";
+			$telegram_message .= "\n<b>ВНИМАНИЕ!</b>\n<i>Есть ошибки при выполнении бэкапа!</i>\n\n";
 			$telegram_message .= "<b>Устройства с ошибками:</b>\n";
 			
-			// Обрамляем каждое название устройства в <i></i>
 			$formattedFailedDevices = [];
 			foreach ($failedDevices as $device) {
 				$formattedFailedDevices[] = "<i>{$device}</i>";
