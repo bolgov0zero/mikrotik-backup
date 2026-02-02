@@ -181,13 +181,15 @@ try {
 		
 		if ($errorCount > 0 && !empty($failedDevices)) {
 			$telegram_message .= "\n⚠️ <b>ВНИМАНИЕ:</b> Есть ошибки при выполнении бэкапа!\n";
+			$telegram_message .= "<b>Устройства с ошибками:</b>\n";
 			
 			// Обрамляем каждое название устройства в <i></i>
-			$formattedFailedDevices = array_map(function($device) {
-				return "<i>" . $device . "</i>";
-			}, $failedDevices);
+			$formattedFailedDevices = [];
+			foreach ($failedDevices as $device) {
+				$formattedFailedDevices[] = "<i>{$device}</i>";
+			}
 			
-			$telegram_message .= "<blockquote><b>Устройства с ошибками:</b></blockquote> " . implode(', ', $formattedFailedDevices);
+			$telegram_message .= "<blockquote>" . implode(', ', $formattedFailedDevices) . "</blockquote>";
 		}
 		
 		// Отправляем уведомление
