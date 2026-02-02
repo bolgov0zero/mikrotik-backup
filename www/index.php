@@ -274,6 +274,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				}
 			}
 			break;
+		
+		// Добавить эти case в существующий switch($_POST['action']):
+		case 'save_telegram':
+			$bot_token = trim($_POST['bot_token'] ?? '');
+			$chat_id = trim($_POST['chat_id'] ?? '');
+			$enabled = isset($_POST['enabled']) ? 1 : 0;
+			
+			saveTelegramSettings($db, $bot_token, $chat_id, $enabled);
+			
+			$_SESSION['settings_success'] = 'Настройки Telegram сохранены';
+			logActivity($db, 'telegram_save', 'Сохранены настройки Telegram уведомлений');
+			break;
+			
+		case 'test_telegram':
+			$bot_token = trim($_POST['bot_token'] ?? '');
+			$chat_id = trim($_POST['chat_id'] ?? '');
+			
+			$result = testTelegramConnection($bot_token, $chat_id);
+			
+			$_SESSION['telegram_test_result'] = $result['message'];
+			$_SESSION['telegram_test_success'] = $result['success'];
+			$_SESSION['telegram_test_icon'] = $result['success'] ? '✅' : '❌';
+			
+			logActivity($db, 'telegram_test', 'Тестирование подключения Telegram: ' . $result['message']);
+			break;
 	}
 	
 	// Перенаправляем чтобы избежать повторной отправки формы
@@ -486,6 +511,15 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 				if (isset($_SESSION['settings_error'])) {
 					echo '<div class="error auto-hide">' . $_SESSION['settings_error'] . '</div>';
 					unset($_SESSION['settings_error']);
+				}
+				if (isset($_SESSION['telegram_test_result'])) {
+					$telegramClass = $_SESSION['telegram_test_success'] ? 'success' : 'error';
+					$telegramIcon = $_SESSION['telegram_test_icon'] ?? '';
+					echo '<div class="' . $telegramClass . ' auto-hide">' . $telegramIcon . ' ' . $_SESSION['telegram_test_result'] . '</div>';
+					
+					unset($_SESSION['telegram_test_result']);
+					unset($_SESSION['telegram_test_success']);
+					unset($_SESSION['telegram_test_icon']);
 				}
 				?>
 			</div>
