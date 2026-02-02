@@ -53,9 +53,9 @@ $devices->reset();
 						<strong>Адрес:</strong> <?= htmlspecialchars($device['ip']) ?>:<?= $device['port'] ?>
 					</div>
 					<?php if ($lastBackup): ?>
-						<div style="color: <?= $hasRecentBackup ? 'var(--success)' : 'var(--danger)' ?>; 
+						<strong>Последний бэкап:</strong> <div style="color: <?= $hasRecentBackup ? 'var(--success)' : 'var(--danger)' ?>; 
 							 font-size: 0.75rem; margin-top: 0.25rem; font-weight: 500;">
-							<strong>Последний бэкап:</strong> <?= $hasRecentBackup ? '✓ ' : '✗ ' ?>
+							<?= $hasRecentBackup ? '✓ ' : '✗ ' ?>
 							<?= formatDbDateTime($lastBackup) ?>
 						</div>
 					<?php else: ?>
