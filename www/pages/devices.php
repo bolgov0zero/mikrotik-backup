@@ -27,7 +27,7 @@ $devices->reset();
 		?>
 			<div class="table-row" style="grid-template-columns: 2fr 1fr auto;">
 				<div>
-					<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.25rem;">
+					<div style="display: flex; align-items: center; gap: 8px; margin-bottom: -0.6rem;">
 						<div class="backup-status-indicator <?= $hasRecentBackup ? 'success pulse' : 'error pulse' ?>"
 							 title="<?= 
 								 $hasRecentBackup 
@@ -37,7 +37,7 @@ $devices->reset();
 									: '✗ Бэкапы не найдены')
 							 ?>">
 						</div>
-						<div style="font-weight: 600;">
+						<div style="font-weight: 600; margin-top: -25px;">
 							<?= htmlspecialchars($device['name']) ?>
 						</div>
 					</div>
