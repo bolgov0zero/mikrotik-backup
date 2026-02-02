@@ -98,7 +98,7 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 								'scheduled_backup_error' => 'Ошибка автобэкапа',
 								'schedule_update' => 'Обновление расписания',
 								'mass_backup' => 'Массовый бэкап',
-								'telegram_save' => 'Настройки TG сохранены',
+								'telegram_save' => 'Настройки Telegram',
 								'telegram_test' => 'Тестовое сообщение',
 								default => $type['action_type']
 							} ?>
@@ -155,7 +155,7 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 							'scheduled_backup_error' => 'Ошибка автобэкапа',
 							'schedule_update' => 'Обновление расписания',
 							'mass_backup' => 'Массовый бэкап',
-							'telegram_save' => 'Настройки TG сохранены',
+							'telegram_save' => 'Настройки Telegram',
 							'telegram_test' => 'Тестовое сообщение',
 							default => $filterActivityType
 						} ?>
@@ -217,7 +217,7 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 								'scheduled_backup_error' => 'Ошибка автобэкапа',
 								'schedule_update' => 'Обновление расписания',
 								'mass_backup' => 'Массовый бэкап',
-								'telegram_save' => 'Настройки TG сохранены',
+								'telegram_save' => 'Настройки Telegram',
 								'telegram_test' => 'Тестовое сообщение',
 								default => $activity['action_type']
 							} ?>
