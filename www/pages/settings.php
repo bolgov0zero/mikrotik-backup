@@ -21,9 +21,6 @@ $telegramSettings = getTelegramSettings($db);
 						   id="botTokenInput"
 						   onfocus="this.type='text'" 
 						   onblur="this.type='password'">
-					<span class="input-icon" onclick="toggleTokenVisibility()" style="cursor: pointer;">
-						👁️
-					</span>
 				</div>
 				<div style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;">
 					Получите у <a href="https://t.me/BotFather" target="_blank">@BotFather</a>

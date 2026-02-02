@@ -284,7 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			saveTelegramSettings($db, $bot_token, $chat_id, $enabled);
 			
 			$_SESSION['settings_success'] = 'Настройки Telegram сохранены';
-			logActivity($db, 'telegram_save', 'Сохранены настройки Telegram уведомлений');
+			logActivity($db, 'telegram_save', 'Настройки Telegram сохранены');
 			break;
 			
 		case 'test_telegram':
@@ -297,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			$_SESSION['telegram_test_success'] = $result['success'];
 			$_SESSION['telegram_test_icon'] = $result['success'] ? '✅' : '❌';
 			
-			logActivity($db, 'telegram_test', 'Тестирование подключения Telegram: ' . $result['message']);
+			logActivity($db, 'telegram_test', 'Проверка подключения Telegram: ' . $result['message']);
 			break;
 	}
 	

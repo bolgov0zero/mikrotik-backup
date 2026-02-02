@@ -225,7 +225,7 @@ function testTelegramConnection($bot_token, $chat_id) {
 				$test_url = "https://api.telegram.org/bot{$bot_token}/sendMessage";
 				$test_data = [
 					'chat_id' => $chat_id,
-					'text' => '✅ Тестовое сообщение от системы бэкапов MikroTik',
+					'text' => 'Тестовое сообщение от системы бэкапов MikroTik',
 					'parse_mode' => 'HTML'
 				];
 				
@@ -241,17 +241,17 @@ function testTelegramConnection($bot_token, $chat_id) {
 				curl_close($ch);
 				
 				if ($test_http_code == 200) {
-					return ['success' => true, 'message' => '✅ Настройки корректны, тестовое сообщение отправлено'];
+					return ['success' => true, 'message' => 'Настройки корректны.'];
 				} else {
-					return ['success' => false, 'message' => '❌ Не удалось отправить сообщение. Проверьте chat_id'];
+					return ['success' => false, 'message' => 'Не удалось отправить сообщение.'];
 				}
 			}
 		}
 		
-		return ['success' => false, 'message' => '❌ Неверный токен бота'];
+		return ['success' => false, 'message' => 'Неверный токен бота'];
 		
 	} catch (Exception $e) {
-		return ['success' => false, 'message' => '❌ Ошибка: ' . $e->getMessage()];
+		return ['success' => false, 'message' => 'Ошибка: ' . $e->getMessage()];
 	}
 }
 
