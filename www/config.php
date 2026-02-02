@@ -241,9 +241,9 @@ function testTelegramConnection($bot_token, $chat_id) {
 				curl_close($ch);
 				
 				if ($test_http_code == 200) {
-					return ['success' => true, 'message' => 'Настройки корректны.'];
+					return ['success' => true, 'message' => 'Настройки корректны'];
 				} else {
-					return ['success' => false, 'message' => 'Не удалось отправить сообщение.'];
+					return ['success' => false, 'message' => 'Не удалось отправить сообщение'];
 				}
 			}
 		}

@@ -163,7 +163,7 @@ try {
 		
 		// Отправляем уведомление в Telegram
 		$telegram_message = "<b>Автоматический бэкап MikroTik</b>\n";
-		$telegram_message .= "<b>Время:</b> <i>" . date('Y-m-d H:i') . "</i>\n\n";
+		$telegram_message .= "<b>Время:</b> <i>" . date('Y-m-d H:i:s') . "</i>\n\n";
 		$telegram_message .= "<blockquote><b>Успешно:</b> <i>{$successCount}</i>\n";
 		$telegram_message .= "<b>Ошибок:</b> <i>{$errorCount}</i></blockquote>\n";
 		
