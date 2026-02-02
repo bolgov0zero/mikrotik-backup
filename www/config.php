@@ -455,4 +455,39 @@ function getDeviceById($db, $deviceId) {
 	
 	return null;
 }
+
+// Функция для проверки, был ли бэкап за последние 24 часа
+function hasRecentBackup($db, $deviceId) {
+	// Ищем любой успешный бэкап за последние 24 часа
+	$stmt = $db->prepare('
+		SELECT COUNT(*) as has_backup 
+		FROM backups 
+		WHERE device_id = ? 
+		AND filename IS NOT NULL
+		AND created_at > datetime("now", "-24 hours")
+	');
+	$stmt->bindValue(1, $deviceId, SQLITE3_INTEGER);
+	$result = $stmt->execute();
+	$row = $result->fetchArray(SQLITE3_ASSOC);
+	
+	return ($row && $row['has_backup'] > 0);
+}
+
+// Функция для получения времени последнего бэкапа
+function getLastBackupTime($db, $deviceId) {
+	$stmt = $db->prepare('
+		SELECT created_at 
+		FROM backups 
+		WHERE device_id = ? 
+		AND filename IS NOT NULL
+		ORDER BY created_at DESC 
+		LIMIT 1
+	');
+	$stmt->bindValue(1, $deviceId, SQLITE3_INTEGER);
+	$result = $stmt->execute();
+	$row = $result->fetchArray(SQLITE3_ASSOC);
+	
+	return $row ? $row['created_at'] : null;
+}
+
 ?>

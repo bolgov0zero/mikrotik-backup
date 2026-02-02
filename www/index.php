@@ -432,7 +432,7 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 						Версия: <span class="version-number" id="appVersion">Загрузка...</span>
 					</div>
 					<div class="copyright">
-						2025 © bolgov0zero
+						2026 © bolgov0zero
 					</div>
 				</div>
 			</div>
