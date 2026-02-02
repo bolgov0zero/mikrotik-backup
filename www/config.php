@@ -456,7 +456,7 @@ function getDeviceById($db, $deviceId) {
 	return null;
 }
 
-// Функция для проверки, был ли бэкап за последние 24 часа
+// Функция для проверки, был ли бэкап за последние 24 часа (для конкретного устройства)
 function hasRecentBackup($db, $deviceId) {
 	// Ищем любой успешный бэкап за последние 24 часа
 	$stmt = $db->prepare('
@@ -473,8 +473,8 @@ function hasRecentBackup($db, $deviceId) {
 	return ($row && $row['has_backup'] > 0);
 }
 
-// Функция для получения времени последнего бэкапа
-function getLastBackupTime($db, $deviceId) {
+// Функция для получения времени последнего бэкапа устройства
+function getDeviceLastBackupTime($db, $deviceId) {
 	$stmt = $db->prepare('
 		SELECT created_at 
 		FROM backups 

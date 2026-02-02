@@ -6,7 +6,7 @@ $deviceLastBackup = [];
 while ($device = $devices->fetchArray(SQLITE3_ASSOC)) {
 	$deviceId = $device['id'];
 	$deviceStatuses[$deviceId] = hasRecentBackup($db, $deviceId);
-	$deviceLastBackup[$deviceId] = getLastBackupTime($db, $deviceId);
+	$deviceLastBackup[$deviceId] = getDeviceLastBackupTime($db, $deviceId);
 }
 $devices->reset();
 ?>
@@ -57,6 +57,10 @@ $devices->reset();
 							 font-size: 0.75rem; margin-top: 0.25rem; font-weight: 500;">
 							<?= $hasRecentBackup ? '✓ ' : '✗ ' ?>
 							<?= formatDbDateTime($lastBackup) ?>
+						</div>
+					<?php else: ?>
+						<div style="color: var(--danger); font-size: 0.75rem; margin-top: 0.25rem; font-weight: 500;">
+							✗ Бэкапы не найдены
 						</div>
 					<?php endif; ?>
 				</div>
