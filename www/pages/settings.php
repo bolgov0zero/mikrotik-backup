@@ -22,9 +22,6 @@ $telegramSettings = getTelegramSettings($db);
 						   onfocus="this.type='text'" 
 						   onblur="this.type='password'">
 				</div>
-				<div style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;">
-					Получите у <a href="https://t.me/BotFather" target="_blank">@BotFather</a>
-				</div>
 			</div>
 			
 			<div class="form-group">
@@ -34,9 +31,6 @@ $telegramSettings = getTelegramSettings($db);
 					   class="form-control" 
 					   value="<?= htmlspecialchars($telegramSettings['chat_id']) ?>" 
 					   placeholder="Введите ID чата">
-				<div style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;">
-					Узнайте у <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>
-				</div>
 			</div>
 			
 			<div class="form-group">
