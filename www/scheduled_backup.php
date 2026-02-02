@@ -162,14 +162,21 @@ try {
 		logActivity($db, 'scheduled_backup', $message);
 		
 		// Отправляем уведомление в Telegram
+		// Отправляем уведомление в Telegram
 		$telegram_message = "<b>Автоматический бэкап MikroTik</b>\n";
 		$telegram_message .= "<b>Время:</b> <i>" . date('Y-m-d H:i:s') . "</i>\n\n";
 		$telegram_message .= "<blockquote><b>Успешно:</b> <i>{$successCount}</i>\n";
 		$telegram_message .= "<b>Ошибок:</b> <i>{$errorCount}</i></blockquote>\n";
 		
-		if ($errorCount > 0) {
+		if ($errorCount > 0 && !empty($failedDevices)) {
 			$telegram_message .= "\n⚠️ <b>ВНИМАНИЕ:</b> Есть ошибки при выполнении бэкапа!\n";
-			$telegram_message .= "Обработанные устройства: " . implode(', ', $processedDevices);
+			
+			// Обрамляем каждое название устройства в <i></i>
+			$formattedFailedDevices = array_map(function($device) {
+				return "<i>" . $device . "</i>";
+			}, $failedDevices);
+			
+			$telegram_message .= "<blockquote><b>Устройства с ошибками:</b></blockquote> " . implode(', ', $formattedFailedDevices);
 		}
 		
 		// Отправляем уведомление
