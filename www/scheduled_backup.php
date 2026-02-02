@@ -92,12 +92,15 @@ try {
 		$successCount = 0;
 		$errorCount = 0;
 		$processedDevices = [];
+		$failedDevices = []; // Массив для устройств с ошибками
 		
 		// Теперь обрабатываем каждое устройство из массива
 		foreach ($devices as $device) {
 			$deviceInfo = "{$device['name']} ({$device['ip']}:{$device['port']})";
 			logToFile("Обработка устройства: {$deviceInfo}");
 			$processedDevices[] = $device['name'];
+			
+			$deviceHasError = false; // Флаг ошибок для текущего устройства
 			
 			// Создаем полный бэкап
 			logToFile("  Создание полного бэкапа...");
@@ -115,10 +118,12 @@ try {
 					logToFile("  ✓ Полный бэкап создан и записан в БД: {$fullResult['filename']}");
 				} else {
 					$errorCount++;
+					$deviceHasError = true;
 					logToFile("  ✗ Ошибка записи полного бэкапа в БД: {$fullResult['filename']}");
 				}
 			} else {
 				$errorCount++;
+				$deviceHasError = true;
 				logToFile("  ✗ Ошибка полного бэкапа: {$fullResult['error']}");
 			}
 			
@@ -141,11 +146,18 @@ try {
 					logToFile("  ✓ Экспорт конфигурации создан и записан в БД: {$configResult['filename']}");
 				} else {
 					$errorCount++;
+					$deviceHasError = true;
 					logToFile("  ✗ Ошибка записи экспорта в БД: {$configResult['filename']}");
 				}
 			} else {
 				$errorCount++;
+				$deviceHasError = true;
 				logToFile("  ✗ Ошибка экспорта конфигурации: {$configResult['error']}");
+			}
+			
+			// Если у устройства были ошибки, добавляем в список проблемных
+			if ($deviceHasError) {
+				$failedDevices[] = $device['name'];
 			}
 			
 			// Пауза между устройствами
@@ -161,7 +173,6 @@ try {
 		// Логируем в базу для отображения в интерфейсе
 		logActivity($db, 'scheduled_backup', $message);
 		
-		// Отправляем уведомление в Telegram
 		// Отправляем уведомление в Telegram
 		$telegram_message = "<b>Автоматический бэкап MikroTik</b>\n";
 		$telegram_message .= "<b>Время:</b> <i>" . date('Y-m-d H:i:s') . "</i>\n\n";
