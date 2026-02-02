@@ -163,10 +163,9 @@ try {
 		
 		// Отправляем уведомление в Telegram
 		$telegram_message = "<b>Автоматический бэкап MikroTik</b>\n";
-		$telegram_message .= "<b>Время:</b> " . date('d.m.Y H:i') . "\n\n";
-		$telegram_message .= "<b>Результат:</b>\n";
-		$telegram_message .= "<blockquote><b>Успешно:</b> {$successCount}\n";
-		$telegram_message .= "<b>Ошибок:</b> {$errorCount}</blockquote>\n";
+		$telegram_message .= "<b>Время:</b> <i>" . date('Y-m-d H:i') . "</i>\n\n";
+		$telegram_message .= "<blockquote><b>Успешно:</b> <i>{$successCount}</i>\n";
+		$telegram_message .= "<b>Ошибок:</b> <i>{$errorCount}</i></blockquote>\n";
 		
 		if ($errorCount > 0) {
 			$telegram_message .= "\n⚠️ <b>ВНИМАНИЕ:</b> Есть ошибки при выполнении бэкапа!\n";
