@@ -309,7 +309,7 @@ $allDevices = $db->query('SELECT * FROM devices ORDER BY name');
 		<div class="file-content-wrapper">
 			<div class="file-content-container">
 				<div class="line-numbers" id="lineNumbers"></div>
-				<pre id="backupContent" class="file-content" onclick="focusSearch()"></pre>
+				<pre id="backupContent" class="file-content"></pre>
 			</div>
 		</div>
 		
@@ -699,10 +699,6 @@ function handleSearchKeydown(event) {
 	}
 }
 
-// Функция для фокусировки на поле поиска при клике на контент
-function focusSearch() {
-	document.getElementById('backupSearch').focus();
-}
 
 // Функция для экранирования HTML
 function escapeHtml(text) {
