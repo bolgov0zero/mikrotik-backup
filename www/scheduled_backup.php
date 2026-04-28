@@ -191,14 +191,24 @@ try {
 			$telegram_message .= "<blockquote>" . implode(', ', $formattedFailedDevices) . "</blockquote>";
 		}
 		
-		// Отправляем уведомление
+		// Отправляем уведомление в Telegram
 		$telegramSent = sendTelegramNotification($telegram_message);
 		if ($telegramSent) {
 			logToFile("✅ Уведомление отправлено в Telegram");
 		} else {
 			logToFile("ℹ️ Уведомление в Telegram не отправлено (возможно, не настроено)");
 		}
-		
+
+		// Отправляем уведомление на Email
+		$emailCfg  = getEmailSettings($db);
+		$emailHtml = buildBackupEmailBody($successCount, $errorCount, $failedDevices, $deviceCount);
+		$emailSent = sendEmailNotification($emailCfg['subject'] ?: 'MikroTik Backup Report', $emailHtml, $telegram_message);
+		if ($emailSent) {
+			logToFile("✅ Уведомление отправлено на Email");
+		} else {
+			logToFile("ℹ️ Уведомление на Email не отправлено (возможно, не настроено)");
+		}
+
 		logToFile("=== ЗАПЛАНИРОВАННЫЙ БЭКАП УСПЕШНО ВЫПОЛНЕН ===");
 		
 		$db->close();
@@ -216,12 +226,15 @@ try {
 		$db = initDatabase();
 		logActivity($db, 'scheduled_backup_error', $errorMsg);
 		
-		// Также отправляем уведомление об ошибке в Telegram
-		$telegram_error_msg = "❌ <b>КРИТИЧЕСКАЯ ОШИБКА БЭКАПА</b>\n";
+		// Уведомление об ошибке в Telegram
+		$telegram_error_msg  = "❌ <b>КРИТИЧЕСКАЯ ОШИБКА БЭКАПА</b>\n";
 		$telegram_error_msg .= "📅 Дата: " . date('d.m.Y H:i') . "\n";
 		$telegram_error_msg .= "💥 Ошибка: " . $e->getMessage();
-		
 		sendTelegramNotification($telegram_error_msg);
+
+		// Уведомление об ошибке на Email
+		$errHtml = buildErrorEmailBody($e->getMessage());
+		sendEmailNotification('❌ Критическая ошибка бэкапа MikroTik', $errHtml, $telegram_error_msg);
 		
 		$db->close();
 	} catch (Exception $e2) {

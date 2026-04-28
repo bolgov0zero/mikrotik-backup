@@ -115,7 +115,25 @@ function initDatabase() {
 	// Добавляем настройки по умолчанию для Telegram
 	$stmt = $db->prepare('INSERT OR IGNORE INTO telegram_settings (id, bot_token, chat_id, enabled) VALUES (1, "", "", 0)');
 	$stmt->execute();
-	
+
+	// Таблица настроек Email
+	$db->exec('CREATE TABLE IF NOT EXISTS email_settings (
+		id INTEGER PRIMARY KEY,
+		host TEXT DEFAULT "",
+		port INTEGER DEFAULT 587,
+		encryption TEXT DEFAULT "tls",
+		username TEXT DEFAULT "",
+		password TEXT DEFAULT "",
+		from_email TEXT DEFAULT "",
+		from_name TEXT DEFAULT "MikroTik Backup",
+		to_email TEXT DEFAULT "",
+		subject TEXT DEFAULT "MikroTik Backup Report",
+		enabled INTEGER DEFAULT 0,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)');
+	$stmt = $db->prepare('INSERT OR IGNORE INTO email_settings (id) VALUES (1)');
+	$stmt->execute();
+
 	return $db;
 }
 
@@ -621,4 +639,320 @@ function getDeviceLastBackupTime($db, $deviceId) {
 	return $row ? $row['created_at'] : null;
 }
 
+// ─── Email ───────────────────────────────────────────────────────────────────
+
+function getEmailSettings($db) {
+	$result = $db->query('SELECT * FROM email_settings WHERE id = 1');
+	$row = $result->fetchArray(SQLITE3_ASSOC);
+	return $row ?: [
+		'host' => '', 'port' => 587, 'encryption' => 'tls',
+		'username' => '', 'password' => '', 'from_email' => '',
+		'from_name' => 'MikroTik Backup', 'to_email' => '',
+		'subject' => 'MikroTik Backup Report', 'enabled' => 0,
+	];
+}
+
+function saveEmailSettings($db, $data) {
+	$stmt = $db->prepare('UPDATE email_settings SET
+		host=?, port=?, encryption=?, username=?, password=?,
+		from_email=?, from_name=?, to_email=?, subject=?, enabled=?,
+		updated_at=CURRENT_TIMESTAMP WHERE id=1');
+	$stmt->bindValue(1,  $data['host'],       SQLITE3_TEXT);
+	$stmt->bindValue(2,  (int)$data['port'],  SQLITE3_INTEGER);
+	$stmt->bindValue(3,  $data['encryption'], SQLITE3_TEXT);
+	$stmt->bindValue(4,  $data['username'],   SQLITE3_TEXT);
+	$stmt->bindValue(5,  $data['password'],   SQLITE3_TEXT);
+	$stmt->bindValue(6,  $data['from_email'], SQLITE3_TEXT);
+	$stmt->bindValue(7,  $data['from_name'],  SQLITE3_TEXT);
+	$stmt->bindValue(8,  $data['to_email'],   SQLITE3_TEXT);
+	$stmt->bindValue(9,  $data['subject'],    SQLITE3_TEXT);
+	$stmt->bindValue(10, $data['enabled'] ? 1 : 0, SQLITE3_INTEGER);
+	return $stmt->execute();
+}
+
+// Простой SMTP-клиент на сокетах (без внешних зависимостей)
+function smtpSend($cfg, $to, $subject, $htmlBody, $textBody = '') {
+	$host      = $cfg['host'];
+	$port      = (int)$cfg['port'];
+	$enc       = strtolower($cfg['encryption']); // tls | ssl | none
+	$user      = $cfg['username'];
+	$pass      = $cfg['password'];
+	$fromEmail = $cfg['from_email'];
+	$fromName  = $cfg['from_name'];
+
+	$errno = 0; $errstr = '';
+	$timeout = 15;
+
+	if ($enc === 'ssl') {
+		$socket = @fsockopen("ssl://{$host}", $port, $errno, $errstr, $timeout);
+	} else {
+		$socket = @fsockopen($host, $port, $errno, $errstr, $timeout);
+	}
+
+	if (!$socket) {
+		return ['success' => false, 'error' => "Не удалось подключиться к {$host}:{$port} — {$errstr}"];
+	}
+
+	$read = function() use ($socket) {
+		$data = '';
+		while ($line = fgets($socket, 512)) {
+			$data .= $line;
+			if (substr($line, 3, 1) === ' ') break;
+		}
+		return $data;
+	};
+
+	$send = function($cmd) use ($socket, $read) {
+		fwrite($socket, $cmd . "\r\n");
+		return $read();
+	};
+
+	$read(); // приветствие
+
+	if ($enc === 'tls') {
+		$send('EHLO localhost');
+		$resp = $send('STARTTLS');
+		if (strpos($resp, '220') === false) {
+			fclose($socket);
+			return ['success' => false, 'error' => 'STARTTLS не поддерживается сервером'];
+		}
+		if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+			fclose($socket);
+			return ['success' => false, 'error' => 'Ошибка TLS рукопожатия'];
+		}
+	}
+
+	$send('EHLO localhost');
+
+	if (!empty($user)) {
+		$send('AUTH LOGIN');
+		$send(base64_encode($user));
+		$resp = $send(base64_encode($pass));
+		if (strpos($resp, '235') === false) {
+			fclose($socket);
+			return ['success' => false, 'error' => 'Ошибка авторизации SMTP (неверный логин или пароль)'];
+		}
+	}
+
+	$send("MAIL FROM:<{$fromEmail}>");
+	$send("RCPT TO:<{$to}>");
+	$send('DATA');
+
+	$boundary = 'MP_' . md5(uniqid());
+	$fromEncoded = '=?UTF-8?B?' . base64_encode($fromName) . '?=';
+	$subjectEncoded = '=?UTF-8?B?' . base64_encode($subject) . '?=';
+	$date = date('r');
+
+	$headers  = "Date: {$date}\r\n";
+	$headers .= "From: {$fromEncoded} <{$fromEmail}>\r\n";
+	$headers .= "To: {$to}\r\n";
+	$headers .= "Subject: {$subjectEncoded}\r\n";
+	$headers .= "MIME-Version: 1.0\r\n";
+	$headers .= "X-Mailer: MikroTik-Backup/1.0\r\n";
+
+	if (!empty($textBody)) {
+		$headers .= "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
+		$body  = "--{$boundary}\r\n";
+		$body .= "Content-Type: text/plain; charset=UTF-8\r\n";
+		$body .= "Content-Transfer-Encoding: base64\r\n\r\n";
+		$body .= chunk_split(base64_encode($textBody)) . "\r\n";
+		$body .= "--{$boundary}\r\n";
+		$body .= "Content-Type: text/html; charset=UTF-8\r\n";
+		$body .= "Content-Transfer-Encoding: base64\r\n\r\n";
+		$body .= chunk_split(base64_encode($htmlBody)) . "\r\n";
+		$body .= "--{$boundary}--";
+	} else {
+		$headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+		$headers .= "Content-Transfer-Encoding: base64\r\n";
+		$body = chunk_split(base64_encode($htmlBody));
+	}
+
+	$resp = $send($headers . "\r\n" . $body . "\r\n.");
+
+	$send('QUIT');
+	fclose($socket);
+
+	if (strpos($resp, '250') === false) {
+		return ['success' => false, 'error' => "Сервер отклонил письмо: {$resp}"];
+	}
+
+	return ['success' => true];
+}
+
+// Строим HTML-тело письма
+function buildEmailHtml($title, $body, $isError = false) {
+	$accentColor  = $isError ? '#e74c3c' : '#c0392b';
+	$statusBg     = $isError ? '#fdf2f2' : '#f8f9fa';
+	$statusBorder = $isError ? '#f5c6cb' : '#dee2e6';
+	$year = date('Y');
+
+	return <<<HTML
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{$title}</title>
+</head>
+<body style="margin:0;padding:0;background:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f0f0;padding:32px 16px;">
+  <tr><td align="center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+
+      <!-- Header -->
+      <tr><td style="background:{$accentColor};border-radius:12px 12px 0 0;padding:24px 32px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td>
+              <div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:8px;padding:6px 10px;margin-bottom:12px;">
+                <span style="color:white;font-size:13px;font-weight:600;letter-spacing:0.5px;">MikroTik Backup System</span>
+              </div>
+              <div style="color:white;font-size:22px;font-weight:700;line-height:1.2;">{$title}</div>
+              <div style="color:rgba(255,255,255,0.75);font-size:13px;margin-top:6px;">{$_date_}</div>
+            </td>
+          </tr>
+        </table>
+      </td></tr>
+
+      <!-- Body -->
+      <tr><td style="background:#ffffff;padding:28px 32px;">
+        {$body}
+      </td></tr>
+
+      <!-- Footer -->
+      <tr><td style="background:#f8f8f8;border-radius:0 0 12px 12px;padding:16px 32px;border-top:1px solid #e8e8e8;">
+        <div style="color:#999;font-size:12px;text-align:center;">
+          {$year} &copy; MikroTik Backup System &nbsp;&middot;&nbsp;
+          Это автоматическое письмо, не отвечайте на него
+        </div>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>
+HTML;
+}
+
+function buildBackupEmailBody($successCount, $errorCount, $failedDevices, $deviceCount) {
+	$time = date('d.m.Y H:i:s');
+	$statusColor  = $errorCount > 0 ? '#e74c3c' : '#27ae60';
+	$statusText   = $errorCount > 0 ? 'Завершено с ошибками' : 'Успешно завершено';
+	$statusBg     = $errorCount > 0 ? '#fdf2f2' : '#f0faf4';
+	$statusBorder = $errorCount > 0 ? '#f5c6cb' : '#b8e8c8';
+
+	$failedBlock = '';
+	if ($errorCount > 0 && !empty($failedDevices)) {
+		$items = '';
+		foreach ($failedDevices as $name) {
+			$items .= "<li style='margin:4px 0;color:#c0392b;'>" . htmlspecialchars($name) . "</li>";
+		}
+		$failedBlock = <<<HTML
+<div style="margin-top:20px;padding:16px;background:#fdf2f2;border-radius:8px;border:1px solid #f5c6cb;">
+  <div style="font-size:13px;font-weight:700;color:#c0392b;margin-bottom:8px;">&#9888; Устройства с ошибками</div>
+  <ul style="margin:0;padding-left:20px;font-size:13px;">{$items}</ul>
+</div>
+HTML;
+	}
+
+	$title = 'Автоматический бэкап MikroTik';
+	$body = <<<HTML
+<!-- Status badge -->
+<div style="display:inline-block;padding:6px 14px;background:{$statusBg};border:1px solid {$statusBorder};border-radius:20px;margin-bottom:20px;">
+  <span style="font-size:13px;font-weight:600;color:{$statusColor};">{$statusText}</span>
+</div>
+
+<!-- Stats grid -->
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+  <tr>
+    <td width="33%" style="padding:4px;">
+      <div style="background:#f8f9fa;border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#1a1a1a;">{$deviceCount}</div>
+        <div style="font-size:12px;color:#888;margin-top:4px;font-weight:500;">Устройств</div>
+      </div>
+    </td>
+    <td width="33%" style="padding:4px;">
+      <div style="background:#f0faf4;border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#27ae60;">{$successCount}</div>
+        <div style="font-size:12px;color:#888;margin-top:4px;font-weight:500;">Успешно</div>
+      </div>
+    </td>
+    <td width="33%" style="padding:4px;">
+      <div style="background:#fdf2f2;border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#e74c3c;">{$errorCount}</div>
+        <div style="font-size:12px;color:#888;margin-top:4px;font-weight:500;">Ошибок</div>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<!-- Time -->
+<div style="font-size:13px;color:#666;padding:12px 16px;background:#f8f9fa;border-radius:8px;">
+  &#128336; Время выполнения: <strong>{$time}</strong>
+</div>
+
+{$failedBlock}
+HTML;
+
+	$html = buildEmailHtml($title, $body, $errorCount > 0);
+	return str_replace('{$_date_}', $time, $html);
+}
+
+function buildErrorEmailBody($errorMessage) {
+	$time = date('d.m.Y H:i:s');
+	$title = '&#10060; Критическая ошибка бэкапа';
+	$errEscaped = htmlspecialchars($errorMessage);
+	$body = <<<HTML
+<div style="padding:16px;background:#fdf2f2;border-radius:8px;border-left:4px solid #e74c3c;margin-bottom:16px;">
+  <div style="font-size:13px;font-weight:700;color:#c0392b;margin-bottom:6px;">Текст ошибки</div>
+  <div style="font-size:13px;color:#721c24;font-family:monospace;">{$errEscaped}</div>
+</div>
+<div style="font-size:13px;color:#666;padding:12px 16px;background:#f8f9fa;border-radius:8px;">
+  &#128336; Время: <strong>{$time}</strong>
+</div>
+HTML;
+
+	$html = buildEmailHtml('Критическая ошибка бэкапа', $body, true);
+	return str_replace('{$_date_}', $time, $html);
+}
+
+function sendEmailNotification($subject, $htmlBody, $textBody = '') {
+	try {
+		$db = initDatabase();
+		$cfg = getEmailSettings($db);
+		$db->close();
+
+		if (!$cfg['enabled'] || empty($cfg['host']) || empty($cfg['to_email'])) {
+			return false;
+		}
+
+		$result = smtpSend($cfg, $cfg['to_email'], $subject, $htmlBody, $textBody);
+		return $result['success'];
+
+	} catch (Exception $e) {
+		error_log("Email notification error: " . $e->getMessage());
+		return false;
+	}
+}
+
+function testEmailConnection($cfg) {
+	if (empty($cfg['host']) || empty($cfg['to_email'])) {
+		return ['success' => false, 'error' => 'Укажите SMTP-хост и адрес получателя'];
+	}
+	$subject = 'Тестовое письмо — MikroTik Backup System';
+	$time = date('d.m.Y H:i:s');
+	$body = <<<HTML
+<div style="padding:16px;background:#f0faf4;border-radius:8px;border-left:4px solid #27ae60;margin-bottom:16px;">
+  <div style="font-size:14px;font-weight:600;color:#27ae60;">&#10003; Соединение установлено успешно</div>
+  <div style="font-size:13px;color:#555;margin-top:6px;">Настройки SMTP корректны. Уведомления будут приходить на этот адрес.</div>
+</div>
+<div style="font-size:13px;color:#666;padding:12px 16px;background:#f8f9fa;border-radius:8px;">
+  &#128336; Время проверки: <strong>{$time}</strong>
+</div>
+HTML;
+	$html = buildEmailHtml('Тестовое письмо', $body, false);
+	$html = str_replace('{$_date_}', $time, $html);
+	return smtpSend($cfg, $cfg['to_email'], $subject, $html);
+}
 ?>

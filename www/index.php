@@ -290,14 +290,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		case 'test_telegram':
 			$bot_token = trim($_POST['bot_token'] ?? '');
 			$chat_id = trim($_POST['chat_id'] ?? '');
-			
+
 			$result = testTelegramConnection($bot_token, $chat_id);
-			
+
 			$_SESSION['telegram_test_result'] = $result['message'];
 			$_SESSION['telegram_test_success'] = $result['success'];
 			$_SESSION['telegram_test_icon'] = $result['success'] ? '✅' : '❌';
-			
+
 			logActivity($db, 'telegram_test', 'Проверка подключения Telegram: ' . $result['message']);
+			break;
+
+		case 'save_email':
+			$emailData = [
+				'host'       => trim($_POST['email_host'] ?? ''),
+				'port'       => intval($_POST['email_port'] ?? 587),
+				'encryption' => $_POST['email_encryption'] ?? 'tls',
+				'username'   => trim($_POST['email_username'] ?? ''),
+				'password'   => $_POST['email_password'] ?? '',
+				'from_email' => trim($_POST['email_from_email'] ?? ''),
+				'from_name'  => trim($_POST['email_from_name'] ?? 'MikroTik Backup'),
+				'to_email'   => trim($_POST['email_to'] ?? ''),
+				'subject'    => trim($_POST['email_subject'] ?? 'MikroTik Backup Report'),
+				'enabled'    => isset($_POST['email_enabled']) ? 1 : 0,
+			];
+			saveEmailSettings($db, $emailData);
+			$_SESSION['settings_success'] = 'Настройки Email сохранены';
+			logActivity($db, 'email_save', 'Настройки Email сохранены');
+			break;
+
+		case 'test_email':
+			$testCfg = [
+				'host'       => trim($_POST['email_host'] ?? ''),
+				'port'       => intval($_POST['email_port'] ?? 587),
+				'encryption' => $_POST['email_encryption'] ?? 'tls',
+				'username'   => trim($_POST['email_username'] ?? ''),
+				'password'   => $_POST['email_password'] ?? '',
+				'from_email' => trim($_POST['email_from_email'] ?? ''),
+				'from_name'  => trim($_POST['email_from_name'] ?? 'MikroTik Backup'),
+				'to_email'   => trim($_POST['email_to'] ?? ''),
+				'subject'    => trim($_POST['email_subject'] ?? 'MikroTik Backup Report'),
+				'enabled'    => 1,
+			];
+			$result = testEmailConnection($testCfg);
+			$_SESSION['settings_success'] = $result['success']
+				? '✅ Тестовое письмо успешно отправлено на ' . htmlspecialchars($testCfg['to_email'])
+				: '❌ Ошибка отправки: ' . ($result['error'] ?? 'неизвестная ошибка');
+			if (!$result['success']) {
+				$_SESSION['settings_error'] = $_SESSION['settings_success'];
+				unset($_SESSION['settings_success']);
+			}
+			logActivity($db, 'email_test', 'Проверка Email: ' . ($result['success'] ? 'успешно' : $result['error'] ?? 'ошибка'));
 			break;
 	}
 	
@@ -411,8 +453,15 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 		<aside class="sidebar">
 			<div class="sidebar-content">
 				<div class="logo">
-					<h1>MikroTik</h1>
-					<h2>Backup System</h2>
+					<div class="logo-icon">
+						<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+							<path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.3l7.5 3.75L12 11.8 4.5 8.05 12 4.3zM3.5 9.1l8 4v7.6l-8-4V9.1zm9.5 11.6V13.1l8-4v7.6l-8 4z"/>
+						</svg>
+					</div>
+					<div class="logo-text">
+						<h1>MikroTik</h1>
+						<h2>Backup System</h2>
+					</div>
 				</div>
 				<nav>
 					<ul class="nav-menu">

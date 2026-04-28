@@ -49,20 +49,32 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 
 <div class="stats-grid">
 	<div class="stat-card">
-		<div class="stat-number"><?= $deviceCount ?></div>
-		<div class="stat-label">Устройств в системе</div>
+		<div class="stat-icon"><span class="icon icon-devices"></span></div>
+		<div class="stat-body">
+			<div class="stat-number"><?= $deviceCount ?></div>
+			<div class="stat-label">Устройств</div>
+		</div>
 	</div>
 	<div class="stat-card">
-		<div class="stat-number"><?= $backupCount ?></div>
-		<div class="stat-label">Всего бэкапов</div>
+		<div class="stat-icon"><span class="icon icon-backups"></span></div>
+		<div class="stat-body">
+			<div class="stat-number"><?= $backupCount ?></div>
+			<div class="stat-label">Бэкапов</div>
+		</div>
 	</div>
 	<div class="stat-card">
-		<div class="stat-number"><?= $totalActivities ?></div>
-		<div class="stat-label">Записей в логе</div>
+		<div class="stat-icon"><span class="icon icon-activity"></span></div>
+		<div class="stat-body">
+			<div class="stat-number"><?= $totalActivities ?></div>
+			<div class="stat-label">Записей в логе</div>
+		</div>
 	</div>
 	<div class="stat-card">
-		<div class="stat-number"><?= date('H:i') ?></div>
-		<div class="stat-label">Текущее время</div>
+		<div class="stat-icon"><span class="icon icon-clock"></span></div>
+		<div class="stat-body">
+			<div class="stat-number"><?= date('H:i') ?></div>
+			<div class="stat-label">Текущее время</div>
+		</div>
 	</div>
 </div>
 

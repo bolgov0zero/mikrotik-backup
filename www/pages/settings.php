@@ -1,262 +1,337 @@
 <?php
-// Получаем настройки Telegram
 $telegramSettings = getTelegramSettings($db);
+$emailSettings    = getEmailSettings($db);
 ?>
 
-<div class="settings-grid">
-	<!-- Секция Telegram уведомлений -->
-	<div class="setting-section">
-		<h3>🤖 Telegram уведомления</h3>
-		<form method="POST" id="telegramForm">
-			<input type="hidden" name="action" value="save_telegram">
-			
-			<div class="form-group">
-				<label>Токен бота</label>
-				<div class="input-with-icon">
-					<input type="password" 
-						   name="bot_token" 
-						   class="form-control" 
-						   value="<?= htmlspecialchars($telegramSettings['bot_token']) ?>" 
-						   placeholder="Введите токен бота"
-						   id="botTokenInput"
-						   onfocus="this.type='text'" 
-						   onblur="this.type='password'">
+<div class="settings-page">
+
+	<!-- Автоматизация -->
+	<div class="settings-section-group">
+		<div class="settings-section-label">Автоматизация</div>
+		<div class="settings-card">
+			<div class="settings-row">
+				<div class="settings-row-icon">
+					<span class="icon icon-schedule"></span>
+				</div>
+				<div class="settings-row-text">
+					<div class="settings-row-title">Расписание бэкапов</div>
+					<div class="settings-row-desc">Ежедневное автоматическое копирование</div>
+				</div>
+				<div class="settings-row-control">
+					<form method="POST" style="display:flex; align-items:center; gap:0.5rem;">
+						<input type="hidden" name="action" value="update_schedule">
+						<input type="time" name="backup_time" class="form-control"
+							   value="<?= htmlspecialchars($backupScheduleTime) ?>"
+							   required style="width:110px;">
+						<button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+					</form>
 				</div>
 			</div>
-			
-			<div class="form-group">
-				<label>ID чата</label>
-				<input type="text" 
-					   name="chat_id" 
-					   class="form-control" 
-					   value="<?= htmlspecialchars($telegramSettings['chat_id']) ?>" 
-					   placeholder="Введите ID чата">
-			</div>
-			
-			<div class="form-group">
-				<label class="checkbox-label">
-					<input type="checkbox" 
-						   name="enabled" 
-						   value="1" 
-						   <?= $telegramSettings['enabled'] ? 'checked' : '' ?>>
-					<span>Включить уведомления</span>
-				</label>
-			</div>
-			
-			<div class="form-actions" style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
-				<button type="submit" class="btn btn-primary">
-					Сохранить настройки
-				</button>
-				<button type="button" class="btn btn-secondary" onclick="testTelegramConnection()">
-					Проверить соединение
-				</button>
-			</div>
-		</form>
-		
-		<?php if (isset($_SESSION['telegram_test_result'])): ?>
-			<div style="margin-top: 1rem; padding: 0.75rem; border-radius: var(--radius-sm); 
-						background: <?= $_SESSION['telegram_test_success'] ? 'var(--success)' : 'var(--danger)' ?>; 
-						color: white; font-size: 0.875rem;">
-				<?= htmlspecialchars($_SESSION['telegram_test_result']) ?>
-			</div>
-			<?php 
-			unset($_SESSION['telegram_test_result']);
-			unset($_SESSION['telegram_test_success']);
-			?>
-		<?php endif; ?>
+		</div>
 	</div>
 
-	<!-- Секция планировщика -->
-	<div class="setting-section">
-		<h3>🕐 Планировщик бэкапов</h3>
-		<form method="POST">
-			<input type="hidden" name="action" value="update_schedule">
-			<div class="form-group">
-				<label>Время автоматического бэкапа</label>
-				<input type="time" name="backup_time" class="form-control" value="<?= htmlspecialchars($backupScheduleTime) ?>" required>
-				<div style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;">
-					Ежедневное автоматическое резервное копирование в указанное время
+	<!-- Уведомления -->
+	<div class="settings-section-group">
+		<div class="settings-section-label">Уведомления</div>
+		<div class="settings-card">
+			<form method="POST" id="telegramForm">
+				<input type="hidden" name="action" value="save_telegram">
+
+				<div class="settings-row">
+					<div class="settings-row-icon">
+						<span class="icon icon-telegram"></span>
+					</div>
+					<div class="settings-row-text">
+						<div class="settings-row-title">Telegram уведомления</div>
+						<div class="settings-row-desc">Оповещения о бэкапах и ошибках</div>
+					</div>
+					<div class="settings-row-control">
+						<label class="toggle">
+							<input type="checkbox" name="enabled" value="1"
+								   <?= $telegramSettings['enabled'] ? 'checked' : '' ?>>
+							<span class="toggle-slider"></span>
+						</label>
+					</div>
+				</div>
+
+				<div class="settings-form-area">
+					<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+						<div class="form-group" style="margin-bottom:0;">
+							<label>Токен бота</label>
+							<input type="password" name="bot_token" class="form-control"
+								   value="<?= htmlspecialchars($telegramSettings['bot_token']) ?>"
+								   placeholder="1234567890:ABC..."
+								   id="botTokenInput"
+								   onfocus="this.type='text'"
+								   onblur="this.type='password'">
+						</div>
+						<div class="form-group" style="margin-bottom:0;">
+							<label>ID чата</label>
+							<input type="text" name="chat_id" class="form-control"
+								   value="<?= htmlspecialchars($telegramSettings['chat_id']) ?>"
+								   placeholder="-100123456789">
+						</div>
+					</div>
+					<div style="display:flex; gap:0.5rem;">
+						<button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+						<button type="button" class="btn btn-outline btn-sm" onclick="testTelegramConnection()">Проверить</button>
+					</div>
+				</div>
+			</form>
+		</div>
+
+	<!-- Email -->
+	<div class="settings-card">
+		<form method="POST" id="emailForm">
+			<input type="hidden" name="action" value="save_email">
+
+			<div class="settings-row">
+				<div class="settings-row-icon">
+					<span class="icon icon-email"></span>
+				</div>
+				<div class="settings-row-text">
+					<div class="settings-row-title">Email уведомления</div>
+					<div class="settings-row-desc">Отправка отчётов через SMTP</div>
+				</div>
+				<div class="settings-row-control">
+					<label class="toggle">
+						<input type="checkbox" name="email_enabled" value="1"
+							   <?= $emailSettings['enabled'] ? 'checked' : '' ?>>
+						<span class="toggle-slider"></span>
+					</label>
 				</div>
 			</div>
-			<button type="submit" class="btn btn-primary">
-				Сохранить расписание
-			</button>
+
+			<div class="settings-form-area">
+				<div style="display:grid;grid-template-columns:1fr 120px 100px;gap:0.5rem;margin-bottom:0.625rem;">
+					<div class="form-group" style="margin-bottom:0;">
+						<label>SMTP хост</label>
+						<input type="text" name="email_host" class="form-control"
+							   value="<?= htmlspecialchars($emailSettings['host']) ?>"
+							   placeholder="smtp.gmail.com">
+					</div>
+					<div class="form-group" style="margin-bottom:0;">
+						<label>Порт</label>
+						<input type="number" name="email_port" class="form-control"
+							   value="<?= (int)$emailSettings['port'] ?: 587 ?>"
+							   min="1" max="65535">
+					</div>
+					<div class="form-group" style="margin-bottom:0;">
+						<label>Шифрование</label>
+						<select name="email_encryption" class="form-control">
+							<option value="tls"  <?= $emailSettings['encryption']==='tls'  ? 'selected':'' ?>>TLS</option>
+							<option value="ssl"  <?= $emailSettings['encryption']==='ssl'  ? 'selected':'' ?>>SSL</option>
+							<option value="none" <?= $emailSettings['encryption']==='none' ? 'selected':'' ?>>Нет</option>
+						</select>
+					</div>
+				</div>
+
+				<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.625rem;">
+					<div class="form-group" style="margin-bottom:0;">
+						<label>Логин SMTP</label>
+						<input type="text" name="email_username" class="form-control"
+							   value="<?= htmlspecialchars($emailSettings['username']) ?>"
+							   placeholder="user@example.com">
+					</div>
+					<div class="form-group" style="margin-bottom:0;">
+						<label>Пароль SMTP</label>
+						<input type="password" name="email_password" class="form-control"
+							   value="<?= htmlspecialchars($emailSettings['password']) ?>"
+							   placeholder="••••••••"
+							   onfocus="this.type='text'"
+							   onblur="this.type='password'">
+					</div>
+				</div>
+
+				<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.625rem;">
+					<div class="form-group" style="margin-bottom:0;">
+						<label>От кого (email)</label>
+						<input type="email" name="email_from_email" class="form-control"
+							   value="<?= htmlspecialchars($emailSettings['from_email']) ?>"
+							   placeholder="backup@example.com">
+					</div>
+					<div class="form-group" style="margin-bottom:0;">
+						<label>От кого (имя)</label>
+						<input type="text" name="email_from_name" class="form-control"
+							   value="<?= htmlspecialchars($emailSettings['from_name'] ?: 'MikroTik Backup') ?>"
+							   placeholder="MikroTik Backup">
+					</div>
+				</div>
+
+				<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.75rem;">
+					<div class="form-group" style="margin-bottom:0;">
+						<label>Кому (получатель)</label>
+						<input type="email" name="email_to" class="form-control"
+							   value="<?= htmlspecialchars($emailSettings['to_email']) ?>"
+							   placeholder="admin@example.com">
+					</div>
+					<div class="form-group" style="margin-bottom:0;">
+						<label>Тема письма</label>
+						<input type="text" name="email_subject" class="form-control"
+							   value="<?= htmlspecialchars($emailSettings['subject'] ?: 'MikroTik Backup Report') ?>"
+							   placeholder="MikroTik Backup Report">
+					</div>
+				</div>
+
+				<div style="display:flex;gap:0.5rem;">
+					<button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+					<button type="button" class="btn btn-outline btn-sm" onclick="testEmailConnection()">Проверить</button>
+				</div>
+			</div>
 		</form>
 	</div>
+	</div><!-- /settings-section-group Уведомления -->
 
-	<!-- Секция управления пользователями -->
-	<div class="setting-section">
-		<h3>👥 Пользователи</h3>
-		
-		<!-- Форма добавления пользователя -->
-		<div class="subsection-title">Добавить пользователя</div>
-		<form method="POST">
-			<input type="hidden" name="action" value="add_user">
-			<div class="form-group">
-				<input type="text" name="username" class="form-control" placeholder="Логин пользователя" required>
-			</div>
-			<div class="form-group">
-				<input type="password" name="password" class="form-control" placeholder="Пароль" required>
-			</div>
-			<button type="submit" class="btn btn-primary" style="width: 100%;">
-				<span class="icon icon-add"></span>
-				Добавить пользователя
-			</button>
-		</form>
+	<!-- Пользователи -->
+	<div class="settings-section-group">
+		<div class="settings-section-label">Пользователи</div>
+		<div class="settings-card">
 
-		<!-- Список пользователей -->
-		<div class="section-divider"></div>
-		
-		<div class="subsection-title">Существующие пользователи</div>
-		<div class="users-list">
+			<!-- Список существующих пользователей -->
 			<?php
 			$users = $db->query('SELECT * FROM users ORDER BY username');
-			$hasUsers = false;
-			
 			while ($user = $users->fetchArray(SQLITE3_ASSOC)):
-				$hasUsers = true;
 				$isCurrentUser = $user['username'] === $_SESSION['username'];
 				$initial = strtoupper(mb_substr($user['username'], 0, 1));
 			?>
-				<div class="user-item <?= $isCurrentUser ? 'current-user' : '' ?>">
-					<div class="user-info">
-						<div class="user-avatar"><?= $initial ?></div>
-						<div class="username">
-							<?= htmlspecialchars($user['username']) ?>
-							<?php if ($isCurrentUser): ?>
-							<?php endif; ?>
-						</div>
-					</div>
-					<?php if (!$isCurrentUser): ?>
-						<button 
-							type="button" 
-							class="btn btn-danger btn-sm" 
-							onclick="deleteUser('<?= htmlspecialchars($user['username']) ?>')"
-							title="Удалить пользователя"
-						>
-							<span class="icon icon-delete"></span>
-							Удалить
-						</button>
-					<?php else: ?>
-						<div class="current-user-label">Текущий пользователь</div>
+			<div class="settings-row">
+				<div class="user-avatar" style="width:32px;height:32px;font-size:0.75rem;flex-shrink:0;">
+					<?= $initial ?>
+				</div>
+				<div class="settings-row-text">
+					<div class="settings-row-title"><?= htmlspecialchars($user['username']) ?></div>
+					<?php if ($isCurrentUser): ?>
+						<div class="settings-row-desc">Текущая сессия</div>
 					<?php endif; ?>
 				</div>
-			<?php endwhile; ?>
-			
-			<?php if (!$hasUsers): ?>
-				<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-					Нет пользователей
+				<div class="settings-row-control">
+					<?php if (!$isCurrentUser): ?>
+						<button type="button" class="btn btn-danger btn-sm"
+								onclick="deleteUser('<?= htmlspecialchars($user['username']) ?>')">
+							Удалить
+						</button>
+					<?php endif; ?>
 				</div>
-			<?php endif; ?>
+			</div>
+			<?php endwhile; ?>
+
+			<!-- Добавить пользователя -->
+			<div class="settings-form-area">
+				<div class="subsection-title">Добавить пользователя</div>
+				<form method="POST">
+					<input type="hidden" name="action" value="add_user">
+					<div style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.5rem; align-items:end;">
+						<div class="form-group" style="margin-bottom:0;">
+							<label>Логин</label>
+							<input type="text" name="username" class="form-control" placeholder="username" required>
+						</div>
+						<div class="form-group" style="margin-bottom:0;">
+							<label>Пароль</label>
+							<input type="password" name="password" class="form-control" placeholder="••••••••" required>
+						</div>
+						<button type="submit" class="btn btn-primary btn-sm" style="height:32px;">
+							<span class="icon icon-add"></span>
+							Добавить
+						</button>
+					</div>
+				</form>
+			</div>
 		</div>
 	</div>
 
-	<!-- Секция безопасности -->
-	<div class="setting-section">
-		<h3>🔐 Безопасность</h3>
-		<form method="POST">
-			<input type="hidden" name="action" value="change_password">
-			<div class="form-group">
-				<label>Новый пароль</label>
-				<input type="password" name="new_password" class="form-control" placeholder="Введите новый пароль" required>
+	<!-- Безопасность -->
+	<div class="settings-section-group">
+		<div class="settings-section-label">Безопасность</div>
+		<div class="settings-card">
+			<div class="settings-row">
+				<div class="settings-row-icon">
+					<span class="icon icon-security"></span>
+				</div>
+				<div class="settings-row-text">
+					<div class="settings-row-title">Сменить пароль</div>
+					<div class="settings-row-desc">Пользователь: <?= htmlspecialchars($_SESSION['username']) ?></div>
+				</div>
 			</div>
-			<button type="submit" class="btn btn-primary" style="width: 100%;">
-				Сменить пароль
-			</button>
-		</form>
-		
-		<div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-primary); border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
-			<div style="font-size: 0.875rem; color: var(--text-secondary);">
-				<strong>Текущий пользователь:</strong> <?= htmlspecialchars($_SESSION['username']) ?>
+			<div class="settings-form-area">
+				<form method="POST" style="display:flex; gap:0.5rem; align-items:end;">
+					<input type="hidden" name="action" value="change_password">
+					<div class="form-group" style="margin-bottom:0; flex:1;">
+						<label>Новый пароль</label>
+						<input type="password" name="new_password" class="form-control"
+							   placeholder="Введите новый пароль" required>
+					</div>
+					<button type="submit" class="btn btn-primary btn-sm" style="height:32px;">Сменить</button>
+				</form>
 			</div>
 		</div>
 	</div>
+
 </div>
 
 <script>
-function toggleTokenVisibility() {
-	const input = document.getElementById('botTokenInput');
-	input.type = input.type === 'password' ? 'text' : 'password';
-}
-
 function testTelegramConnection() {
 	const form = document.getElementById('telegramForm');
 	const formData = new FormData(form);
-	
-	// Создаем отдельную форму для тестирования
+
 	const testForm = document.createElement('form');
 	testForm.method = 'POST';
 	testForm.style.display = 'none';
-	
-	const actionInput = document.createElement('input');
-	actionInput.name = 'action';
-	actionInput.value = 'test_telegram';
-	testForm.appendChild(actionInput);
-	
-	const tokenInput = document.createElement('input');
-	tokenInput.name = 'bot_token';
-	tokenInput.value = formData.get('bot_token');
-	testForm.appendChild(tokenInput);
-	
-	const chatIdInput = document.createElement('input');
-	chatIdInput.name = 'chat_id';
-	chatIdInput.value = formData.get('chat_id');
-	testForm.appendChild(chatIdInput);
-	
+
+	[['action','test_telegram'],['bot_token',formData.get('bot_token')],['chat_id',formData.get('chat_id')]].forEach(([n,v]) => {
+		const i = document.createElement('input');
+		i.name = n; i.value = v;
+		testForm.appendChild(i);
+	});
+
+	document.body.appendChild(testForm);
+	testForm.submit();
+}
+
+function testEmailConnection() {
+	const form = document.getElementById('emailForm');
+	const formData = new FormData(form);
+
+	const testForm = document.createElement('form');
+	testForm.method = 'POST';
+	testForm.style.display = 'none';
+
+	const fields = [
+		['action',           'test_email'],
+		['email_host',       formData.get('email_host')],
+		['email_port',       formData.get('email_port')],
+		['email_encryption', formData.get('email_encryption')],
+		['email_username',   formData.get('email_username')],
+		['email_password',   formData.get('email_password')],
+		['email_from_email', formData.get('email_from_email')],
+		['email_from_name',  formData.get('email_from_name')],
+		['email_to',         formData.get('email_to')],
+		['email_subject',    formData.get('email_subject')],
+	];
+
+	fields.forEach(([n, v]) => {
+		const i = document.createElement('input');
+		i.name = n; i.value = v || '';
+		testForm.appendChild(i);
+	});
+
 	document.body.appendChild(testForm);
 	testForm.submit();
 }
 
 function deleteUser(username) {
 	if (!confirm(`Удалить пользователя "${username}"?`)) return;
-	
+
 	const form = document.createElement('form');
 	form.method = 'POST';
 	form.style.display = 'none';
-	
-	const actionInput = document.createElement('input');
-	actionInput.name = 'action';
-	actionInput.value = 'delete_user';
-	form.appendChild(actionInput);
-	
-	const usernameInput = document.createElement('input');
-	usernameInput.name = 'username';
-	usernameInput.value = username;
-	form.appendChild(usernameInput);
-	
+
+	[['action','delete_user'],['username',username]].forEach(([n,v]) => {
+		const i = document.createElement('input');
+		i.name = n; i.value = v;
+		form.appendChild(i);
+	});
+
 	document.body.appendChild(form);
 	form.submit();
 }
 </script>
-
-<style>
-.input-with-icon {
-	position: relative;
-}
-
-.input-with-icon .input-icon {
-	position: absolute;
-	right: 10px;
-	top: 50%;
-	transform: translateY(-50%);
-	color: var(--text-secondary);
-}
-
-.input-with-icon input {
-	padding-right: 40px;
-}
-
-.checkbox-label {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	cursor: pointer;
-	font-size: 0.875rem;
-}
-
-.checkbox-label input[type="checkbox"] {
-	width: 16px;
-	height: 16px;
-	margin: 0;
-}
-</style>
