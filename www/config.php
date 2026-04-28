@@ -808,7 +808,7 @@ function buildEmailHtml($title, $body, $isError = false, $date = '') {
 	// Footer
 	$html .= '<tr><td style="background:#f8f8f8;border-radius:0 0 12px 12px;padding:16px 32px;border-top:1px solid #e8e8e8;">';
 	$html .= '<div style="color:#999;font-size:12px;text-align:center;">';
-	$html .= $year . ' &copy; MikroTik Backup System &nbsp;&middot;&nbsp; Это автоматическое письмо, не отвечайте на него';
+	$html .= $year . ' &copy; MikroTik Backup System<br>Это автоматическое письмо, не отвечайте на него';
 	$html .= '</div></td></tr>';
 
 	$html .= '</table></td></tr></table></body></html>';
@@ -819,8 +819,6 @@ function buildBackupEmailBody($successCount, $errorCount, $failedDevices, $devic
 	$time = date('d.m.Y H:i:s');
 	$statusColor  = $errorCount > 0 ? '#e74c3c' : '#27ae60';
 	$statusText   = $errorCount > 0 ? 'Завершено с ошибками' : 'Успешно завершено';
-	$statusBg     = $errorCount > 0 ? '#fdf2f2' : '#f0faf4';
-	$statusBorder = $errorCount > 0 ? '#f5c6cb' : '#b8e8c8';
 
 	$failedBlock = '';
 	if ($errorCount > 0 && !empty($failedDevices)) {
@@ -838,9 +836,10 @@ HTML;
 
 	$title = 'Автоматический бэкап MikroTik';
 	$body = <<<HTML
-<!-- Status badge -->
-<div style="display:inline-block;padding:6px 14px;background:{$statusBg};border:1px solid {$statusBorder};border-radius:20px;margin-bottom:20px;">
-  <span style="font-size:13px;font-weight:600;color:{$statusColor};">{$statusText}</span>
+<!-- Status line -->
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #e8e8e8;">
+  <div style="width:10px;height:10px;border-radius:50%;background:{$statusColor};flex-shrink:0;"></div>
+  <span style="font-size:14px;font-weight:600;color:{$statusColor};">{$statusText}</span>
 </div>
 
 <!-- Stats grid -->
