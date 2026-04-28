@@ -780,59 +780,39 @@ function smtpSend($cfg, $to, $subject, $htmlBody, $textBody = '') {
 }
 
 // Строим HTML-тело письма
-function buildEmailHtml($title, $body, $isError = false) {
-	$accentColor  = $isError ? '#e74c3c' : '#c0392b';
-	$statusBg     = $isError ? '#fdf2f2' : '#f8f9fa';
-	$statusBorder = $isError ? '#f5c6cb' : '#dee2e6';
-	$year = date('Y');
+function buildEmailHtml($title, $body, $isError = false, $date = '') {
+	$accentColor = $isError ? '#e74c3c' : '#c0392b';
+	$year        = date('Y');
+	if (!$date) $date = date('d.m.Y H:i:s');
 
-	return <<<HTML
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>{$title}</title>
-</head>
-<body style="margin:0;padding:0;background:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f0f0;padding:32px 16px;">
-  <tr><td align="center">
-    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+	$html  = '<!DOCTYPE html><html lang="ru"><head>';
+	$html .= '<meta charset="UTF-8">';
+	$html .= '<meta name="viewport" content="width=device-width,initial-scale=1.0">';
+	$html .= '<title>' . htmlspecialchars($title) . '</title></head>';
+	$html .= '<body style="margin:0;padding:0;background:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;">';
+	$html .= '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f0f0;padding:32px 16px;">';
+	$html .= '<tr><td align="center">';
+	$html .= '<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">';
 
-      <!-- Header -->
-      <tr><td style="background:{$accentColor};border-radius:12px 12px 0 0;padding:24px 32px;">
-        <table width="100%" cellpadding="0" cellspacing="0">
-          <tr>
-            <td>
-              <div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:8px;padding:6px 10px;margin-bottom:12px;">
-                <span style="color:white;font-size:13px;font-weight:600;letter-spacing:0.5px;">MikroTik Backup System</span>
-              </div>
-              <div style="color:white;font-size:22px;font-weight:700;line-height:1.2;">{$title}</div>
-              <div style="color:rgba(255,255,255,0.75);font-size:13px;margin-top:6px;">{$_date_}</div>
-            </td>
-          </tr>
-        </table>
-      </td></tr>
+	// Header
+	$html .= '<tr><td style="background:' . $accentColor . ';border-radius:12px 12px 0 0;padding:24px 32px;">';
+	$html .= '<div style="display:inline-block;background:rgba(255,255,255,0.15);border-radius:8px;padding:6px 10px;margin-bottom:12px;">';
+	$html .= '<span style="color:white;font-size:13px;font-weight:600;letter-spacing:0.5px;">MikroTik Backup System</span></div>';
+	$html .= '<div style="color:white;font-size:22px;font-weight:700;line-height:1.2;">' . htmlspecialchars($title) . '</div>';
+	$html .= '<div style="color:rgba(255,255,255,0.75);font-size:13px;margin-top:6px;">' . htmlspecialchars($date) . '</div>';
+	$html .= '</td></tr>';
 
-      <!-- Body -->
-      <tr><td style="background:#ffffff;padding:28px 32px;">
-        {$body}
-      </td></tr>
+	// Body
+	$html .= '<tr><td style="background:#ffffff;padding:28px 32px;">' . $body . '</td></tr>';
 
-      <!-- Footer -->
-      <tr><td style="background:#f8f8f8;border-radius:0 0 12px 12px;padding:16px 32px;border-top:1px solid #e8e8e8;">
-        <div style="color:#999;font-size:12px;text-align:center;">
-          {$year} &copy; MikroTik Backup System &nbsp;&middot;&nbsp;
-          Это автоматическое письмо, не отвечайте на него
-        </div>
-      </td></tr>
+	// Footer
+	$html .= '<tr><td style="background:#f8f8f8;border-radius:0 0 12px 12px;padding:16px 32px;border-top:1px solid #e8e8e8;">';
+	$html .= '<div style="color:#999;font-size:12px;text-align:center;">';
+	$html .= $year . ' &copy; MikroTik Backup System &nbsp;&middot;&nbsp; Это автоматическое письмо, не отвечайте на него';
+	$html .= '</div></td></tr>';
 
-    </table>
-  </td></tr>
-</table>
-</body>
-</html>
-HTML;
+	$html .= '</table></td></tr></table></body></html>';
+	return $html;
 }
 
 function buildBackupEmailBody($successCount, $errorCount, $failedDevices, $deviceCount) {
@@ -895,8 +875,7 @@ HTML;
 {$failedBlock}
 HTML;
 
-	$html = buildEmailHtml($title, $body, $errorCount > 0);
-	return str_replace('{$_date_}', $time, $html);
+	return buildEmailHtml($title, $body, $errorCount > 0, $time);
 }
 
 function buildErrorEmailBody($errorMessage) {
@@ -913,8 +892,7 @@ function buildErrorEmailBody($errorMessage) {
 </div>
 HTML;
 
-	$html = buildEmailHtml('Критическая ошибка бэкапа', $body, true);
-	return str_replace('{$_date_}', $time, $html);
+	return buildEmailHtml('Критическая ошибка бэкапа', $body, true, $time);
 }
 
 function sendEmailNotification($subject, $htmlBody, $textBody = '') {
@@ -951,8 +929,7 @@ function testEmailConnection($cfg) {
   &#128336; Время проверки: <strong>{$time}</strong>
 </div>
 HTML;
-	$html = buildEmailHtml('Тестовое письмо', $body, false);
-	$html = str_replace('{$_date_}', $time, $html);
+	$html = buildEmailHtml('Тестовое письмо', $body, false, $time);
 	return smtpSend($cfg, $cfg['to_email'], $subject, $html);
 }
 ?>
