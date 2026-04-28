@@ -92,17 +92,17 @@ function activityStyle($type) {
 		</div>
 	</div>
 	<div class="stat-card">
-		<div class="stat-icon stat-icon--success"><span class="icon icon-backups"></span></div>
-		<div class="stat-body">
-			<div class="stat-number"><?= $backupToday ?></div>
-			<div class="stat-label">Бэкапов сегодня</div>
-		</div>
-	</div>
-	<div class="stat-card">
 		<div class="stat-icon"><span class="icon icon-activity"></span></div>
 		<div class="stat-body">
 			<div class="stat-number"><?= $totalActivities ?></div>
 			<div class="stat-label">Записей в логе</div>
+		</div>
+	</div>
+	<div class="stat-card">
+		<div class="stat-icon"><span class="icon icon-clock"></span></div>
+		<div class="stat-body">
+			<div class="stat-number" id="liveClock"><?= date('H:i') ?></div>
+			<div class="stat-label">Текущее время</div>
 		</div>
 	</div>
 </div>
@@ -293,4 +293,16 @@ function showDownloadNotification(filename) {
 	setTimeout(() => n.remove(), 4000);
 }
 function trackDownload(id, filename) { showDownloadNotification(filename); return true; }
+
+// Живые часы
+(function() {
+	function pad(n) { return String(n).padStart(2, '0'); }
+	function tick() {
+		const d = new Date();
+		const el = document.getElementById('liveClock');
+		if (el) el.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
+	}
+	tick();
+	setInterval(tick, 10000);
+})();
 </script>
