@@ -1,52 +1,81 @@
 <?php
-// Обработка фильтров для активности
 $filterActivityType = $_GET['activity_type'] ?? 'all';
 $filterActivityDate = $_GET['activity_date'] ?? '';
-
 $pageNumber = max(1, intval($_GET['p'] ?? 1));
-$perPage = 10;
-$offset = ($pageNumber - 1) * $perPage;
+$perPage    = 12;
+$offset     = ($pageNumber - 1) * $perPage;
 
-// Строим запрос с фильтрами
 $whereConditions = [];
-$params = [];
-$paramTypes = [];
+$params      = [];
+$paramTypes  = [];
 
 if ($filterActivityType !== 'all') {
 	$whereConditions[] = 'action_type = ?';
-	$params[] = $filterActivityType;
+	$params[]     = $filterActivityType;
 	$paramTypes[] = SQLITE3_TEXT;
 }
-
 if ($filterActivityDate) {
 	$whereConditions[] = "DATE(created_at) = ?";
-	$params[] = $filterActivityDate;
+	$params[]     = $filterActivityDate;
 	$paramTypes[] = SQLITE3_TEXT;
 }
 
 $whereClause = $whereConditions ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
 
-// Получаем общее количество записей для пагинации
 $countQuery = "SELECT COUNT(*) FROM activity_logs $whereClause";
 $stmt = $db->prepare($countQuery);
-foreach ($params as $index => $value) {
-	$stmt->bindValue($index + 1, $value, $paramTypes[$index]);
-}
+foreach ($params as $i => $v) $stmt->bindValue($i + 1, $v, $paramTypes[$i]);
 $totalActivities = $stmt->execute()->fetchArray(SQLITE3_NUM)[0];
 $totalPages = ceil($totalActivities / $perPage);
 
-// Получаем активности с пагинацией
 $query = "SELECT * FROM activity_logs $whereClause ORDER BY created_at DESC LIMIT $perPage OFFSET $offset";
 $stmt = $db->prepare($query);
-foreach ($params as $index => $value) {
-	$stmt->bindValue($index + 1, $value, $paramTypes[$index]);
-}
+foreach ($params as $i => $v) $stmt->bindValue($i + 1, $v, $paramTypes[$i]);
 $recentActivities = $stmt->execute();
 
-// Получаем уникальные типы действий для фильтра
 $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDER BY action_type");
+
+// Дополнительные данные для карточек
+$backupToday  = $db->querySingle("SELECT COUNT(*) FROM backups WHERE DATE(created_at) = DATE('now')");
+$deviceOnline = $db->querySingle("SELECT COUNT(*) FROM devices");
+$lastBackup   = $db->querySingle("SELECT created_at FROM backups ORDER BY created_at DESC LIMIT 1");
+
+function activityLabel($type) {
+	return match($type) {
+		'device_add'             => 'Устройство добавлено',
+		'device_edit'            => 'Устройство изменено',
+		'device_delete'          => 'Устройство удалено',
+		'backup_create'          => 'Бэкап создан',
+		'backup_delete'          => 'Бэкап удалён',
+		'backup_download'        => 'Бэкап скачан',
+		'connection_test'        => 'Тест подключения',
+		'connection_error'       => 'Ошибка подключения',
+		'password_change'        => 'Смена пароля',
+		'user_add'               => 'Пользователь добавлен',
+		'user_delete'            => 'Пользователь удалён',
+		'backup_error'           => 'Ошибка бэкапа',
+		'scheduled_backup'       => 'Авто-бэкап',
+		'scheduled_backup_error' => 'Ошибка авто-бэкапа',
+		'schedule_update'        => 'Расписание изменено',
+		'mass_backup'            => 'Массовый бэкап',
+		'telegram_save'          => 'Telegram настроен',
+		'telegram_test'          => 'Telegram проверен',
+		'email_save'             => 'Email настроен',
+		'email_test'             => 'Email проверен',
+		default                  => $type,
+	};
+}
+
+function activityStyle($type) {
+	if (str_contains($type, 'error'))    return ['danger',  'icon-activity-error'];
+	if (str_contains($type, 'delete'))   return ['warning', 'icon-activity-delete'];
+	if (str_contains($type, 'backup'))   return ['accent',  'icon-activity-backup'];
+	if (str_contains($type, 'download')) return ['primary', 'icon-activity-download'];
+	return ['success', 'icon-activity-default'];
+}
 ?>
 
+<!-- Stat cards -->
 <div class="stats-grid">
 	<div class="stat-card">
 		<div class="stat-icon"><span class="icon icon-devices"></span></div>
@@ -59,7 +88,14 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 		<div class="stat-icon"><span class="icon icon-backups"></span></div>
 		<div class="stat-body">
 			<div class="stat-number"><?= $backupCount ?></div>
-			<div class="stat-label">Бэкапов</div>
+			<div class="stat-label">Бэкапов всего</div>
+		</div>
+	</div>
+	<div class="stat-card">
+		<div class="stat-icon stat-icon--success"><span class="icon icon-backups"></span></div>
+		<div class="stat-body">
+			<div class="stat-number"><?= $backupToday ?></div>
+			<div class="stat-label">Бэкапов сегодня</div>
 		</div>
 	</div>
 	<div class="stat-card">
@@ -69,184 +105,78 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 			<div class="stat-label">Записей в логе</div>
 		</div>
 	</div>
-	<div class="stat-card">
-		<div class="stat-icon"><span class="icon icon-clock"></span></div>
-		<div class="stat-body">
-			<div class="stat-number"><?= date('H:i') ?></div>
-			<div class="stat-label">Текущее время</div>
-		</div>
-	</div>
 </div>
 
+<!-- Activity log -->
 <div class="table-container">
+
 	<div class="table-header">
-		<h3>Последние действия</h3>
+		<div style="display:flex;align-items:center;gap:0.625rem;">
+			<h3>Журнал событий</h3>
+			<?php if ($filterActivityType !== 'all' || $filterActivityDate): ?>
+				<span class="badge badge-primary">Фильтр активен</span>
+			<?php endif; ?>
+		</div>
+		<div style="display:flex;gap:0.5rem;align-items:center;">
+			<select class="filter-select" style="height:30px;font-size:0.75rem;"
+					id="activityTypeFilter" onchange="applyActivityFilters()">
+				<option value="all" <?= $filterActivityType === 'all' ? 'selected' : '' ?>>Все события</option>
+				<?php
+				$activityTypesLoop = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDER BY action_type");
+				while ($t = $activityTypesLoop->fetchArray(SQLITE3_ASSOC)):
+				?>
+					<option value="<?= $t['action_type'] ?>"
+							<?= $filterActivityType === $t['action_type'] ? 'selected' : '' ?>>
+						<?= activityLabel($t['action_type']) ?>
+					</option>
+				<?php endwhile; ?>
+			</select>
+			<input type="date" id="activityDateFilter" class="date-input"
+				   style="height:30px;font-size:0.75rem;width:128px;"
+				   value="<?= htmlspecialchars($filterActivityDate) ?>"
+				   onchange="applyActivityFilters()">
+			<?php if ($filterActivityType !== 'all' || $filterActivityDate): ?>
+				<button class="btn btn-outline btn-sm" onclick="clearActivityFilters()">Сбросить</button>
+			<?php endif; ?>
+		</div>
 	</div>
 
-	<!-- Панель фильтров -->
-	<div class="filters-panel">
-		<div class="filters-row">
-			<!-- Фильтр по типу события -->
-			<div class="filter-group">
-				<label class="filter-label">Тип события</label>
-				<select id="activityTypeFilter" class="filter-select" onchange="applyActivityFilters()">
-					<option value="all" <?= $filterActivityType === 'all' ? 'selected' : '' ?>>Все события</option>
-					<?php while ($type = $activityTypes->fetchArray(SQLITE3_ASSOC)): ?>
-						<option value="<?= $type['action_type'] ?>" <?= $filterActivityType == $type['action_type'] ? 'selected' : '' ?>>
-							<?= match($type['action_type']) {
-								'device_add' => 'Добавление устройства',
-								'device_edit' => 'Редактирование устройства',
-								'device_delete' => 'Удаление устройства',
-								'backup_create' => 'Создание бэкапа',
-								'backup_delete' => 'Удаление бэкапа',
-								'backup_download' => 'Скачивание бэкапа',
-								'connection_test' => 'Тест подключения',
-								'connection_error' => 'Ошибка подключения',
-								'password_change' => 'Смена пароля',
-								'user_add' => 'Добавление пользователя',
-								'user_delete' => 'Удаление пользователя',
-								'backup_error' => 'Ошибка бэкапа',
-								'scheduled_backup' => 'Автоматический бэкап',
-								'scheduled_backup_error' => 'Ошибка автобэкапа',
-								'schedule_update' => 'Обновление расписания',
-								'mass_backup' => 'Массовый бэкап',
-								'telegram_save' => 'Настройки Telegram',
-								'telegram_test' => 'Тестовое сообщение',
-								default => $type['action_type']
-							} ?>
-						</option>
-					<?php endwhile; ?>
-				</select>
-			</div>
-
-			<!-- Фильтр по дате -->
-			<div class="filter-group">
-				<label class="filter-label">Дата</label>
-				<div class="date-filter">
-					<input type="date" id="activityDateFilter" class="date-input" 
-						   value="<?= htmlspecialchars($filterActivityDate) ?>" 
-						   onchange="applyActivityFilters()">
-					<?php if ($filterActivityDate): ?>
-						<button type="button" class="btn btn-outline btn-xs date-clear" onclick="clearActivityDateFilter()" title="Очистить дату">
-							×
-						</button>
-					<?php endif; ?>
-				</div>
-			</div>
-
-			<!-- Кнопка сброса -->
-			<div class="filter-group">
-				<label class="filter-label" style="opacity: 0;">Действия</label>
-				<button type="button" class="btn btn-outline btn-sm" onclick="clearActivityFilters()" style="height: 40px; white-space: nowrap;">
-					Сбросить все
-				</button>
-			</div>
-		</div>
-
-		<!-- Активные фильтры -->
-		<?php if ($filterActivityType !== 'all' || $filterActivityDate): ?>
-		<div class="active-filters">
-			<div class="active-filters-label">Активные фильтры:</div>
-			<div class="active-filters-list">
-				<?php if ($filterActivityType !== 'all'): ?>
-					<span class="active-filter">
-						Тип: <?= match($filterActivityType) {
-							'device_add' => 'Добавление устройства',
-							'device_edit' => 'Редактирование устройства',
-							'device_delete' => 'Удаление устройства',
-							'backup_create' => 'Создание бэкапа',
-							'backup_delete' => 'Удаление бэкапа',
-							'backup_download' => 'Скачивание бэкапа',
-							'connection_test' => 'Тест подключения',
-							'connection_error' => 'Ошибка подключения',
-							'password_change' => 'Смена пароля',
-							'user_add' => 'Добавление пользователя',
-							'user_delete' => 'Удаление пользователя',
-							'backup_error' => 'Ошибка бэкапа',
-							'scheduled_backup' => 'Автоматический бэкап',
-							'scheduled_backup_error' => 'Ошибка автобэкапа',
-							'schedule_update' => 'Обновление расписания',
-							'mass_backup' => 'Массовый бэкап',
-							'telegram_save' => 'Настройки Telegram',
-							'telegram_test' => 'Тестовое сообщение',
-							default => $filterActivityType
-						} ?>
-						<button type="button" onclick="removeActivityFilter('type')">×</button>
-					</span>
-				<?php endif; ?>
-
-				<?php if ($filterActivityDate): ?>
-					<span class="active-filter">
-						Дата: <?= htmlspecialchars($filterActivityDate) ?>
-						<button type="button" onclick="removeActivityFilter('date')">×</button>
-					</span>
-				<?php endif; ?>
-			</div>
-		</div>
-		<?php endif; ?>
-	</div>
-
-	<div class="table-content">
+	<div class="activity-feed">
 		<?php if ($recentActivities->fetchArray()): ?>
 			<?php $recentActivities->reset(); ?>
-			<?php while ($activity = $recentActivities->fetchArray(SQLITE3_ASSOC)): ?>
-				<div class="table-row" style="grid-template-columns: 2fr 1fr 1fr auto;">
-					<div>
-						<div style="font-weight: 500; color: var(--text-primary);">
-							<?= htmlspecialchars($activity['description']) ?>
-						</div>
+			<?php while ($activity = $recentActivities->fetchArray(SQLITE3_ASSOC)):
+				[$styleKey, $iconKey] = activityStyle($activity['action_type']);
+			?>
+			<div class="activity-row">
+				<div class="activity-dot activity-dot--<?= $styleKey ?>"></div>
+				<div class="activity-main">
+					<div class="activity-desc"><?= htmlspecialchars($activity['description']) ?></div>
+					<div class="activity-meta">
 						<?php if ($activity['device_name']): ?>
-							<div style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">
-								Устройство: <?= htmlspecialchars($activity['device_name']) ?>
-							</div>
+							<span class="activity-meta-item">
+								<span class="icon icon-devices" style="width:11px;height:11px;opacity:.5;"></span>
+								<?= htmlspecialchars($activity['device_name']) ?>
+							</span>
 						<?php endif; ?>
 						<?php if ($activity['backup_filename']): ?>
-							<div style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">
-								Файл: <?= htmlspecialchars($activity['backup_filename']) ?>
-							</div>
+							<span class="activity-meta-item">
+								<span class="icon icon-backups" style="width:11px;height:11px;opacity:.5;"></span>
+								<?= htmlspecialchars($activity['backup_filename']) ?>
+							</span>
 						<?php endif; ?>
 					</div>
-					<div>
-						<span class="badge <?= 
-							strpos($activity['action_type'], 'error') !== false ? 'badge-warning' : 
-							(strpos($activity['action_type'], 'delete') !== false ? 'badge-danger' : 
-							(strpos($activity['action_type'], 'download') !== false ? 'badge-primary' : 'badge-success'))
-						?>">
-							<?= match($activity['action_type']) {
-								'device_add' => 'Добавление устройства',
-								'device_edit' => 'Редактирование устройства',
-								'device_delete' => 'Удаление устройства',
-								'backup_create' => 'Создание бэкапа',
-								'backup_delete' => 'Удаление бэкапа',
-								'backup_download' => 'Скачивание бэкапа',
-								'connection_test' => 'Тест подключения',
-								'connection_error' => 'Ошибка подключения',
-								'password_change' => 'Смена пароля',
-								'user_add' => 'Добавление пользователя',
-								'user_delete' => 'Удаление пользователя',
-								'backup_error' => 'Ошибка бэкапа',
-								'scheduled_backup' => 'Автоматический бэкап',
-								'scheduled_backup_error' => 'Ошибка автобэкапа',
-								'schedule_update' => 'Обновление расписания',
-								'mass_backup' => 'Массовый бэкап',
-								'telegram_save' => 'Настройки Telegram',
-								'telegram_test' => 'Тестовое сообщение',
-								default => $activity['action_type']
-							} ?>
-						</span>
-					</div>
-					<div style="color: var(--text-secondary); font-size: 0.875rem;">
-						<?= htmlspecialchars($activity['user_id']) ?>
-					</div>
-					<div style="color: var(--text-muted); font-size: 0.75rem;">
-						<?= formatDbDateTime($activity['created_at']) ?>
-					</div>
 				</div>
+				<div class="activity-badge">
+					<span class="badge badge-<?= $styleKey === 'accent' ? 'primary' : $styleKey ?>"><?= activityLabel($activity['action_type']) ?></span>
+				</div>
+				<div class="activity-user"><?= htmlspecialchars($activity['user_id']) ?></div>
+				<div class="activity-time"><?= formatDbDateTime($activity['created_at']) ?></div>
+			</div>
 			<?php endwhile; ?>
 		<?php else: ?>
 			<div class="empty-state">
-				<h4>Записи не найдены</h4>
-				<p>Попробуйте изменить параметры фильтрации</p>
+				<h4>Событий не найдено</h4>
+				<p>Попробуйте изменить параметры фильтра</p>
 			</div>
 		<?php endif; ?>
 	</div>
@@ -254,164 +184,113 @@ $activityTypes = $db->query("SELECT DISTINCT action_type FROM activity_logs ORDE
 	<?php if ($totalPages > 1): ?>
 	<div class="pagination">
 		<div class="pagination-info">
-			Показано <?= min($perPage, $totalActivities - $offset) ?> из <?= $totalActivities ?> записей
+			<?= min($perPage, $totalActivities - $offset) ?> из <?= $totalActivities ?>
 		</div>
 		<div class="pagination-controls">
-			<button class="pagination-btn" onclick="changeActivityPage(1)" <?= $pageNumber <= 1 ? 'disabled' : '' ?>>
-				Первая
-			</button>
-			<button class="pagination-btn" onclick="changeActivityPage(<?= $pageNumber - 1 ?>)" <?= $pageNumber <= 1 ? 'disabled' : '' ?>>
-				Назад
-			</button>
-			
-			<div class="pagination-pages">
-				<?php
-				$startPage = max(1, $pageNumber - 2);
-				$endPage = min($totalPages, $pageNumber + 2);
-				
-				for ($i = $startPage; $i <= $endPage; $i++):
-				?>
-					<button class="pagination-page <?= $i == $pageNumber ? 'active' : '' ?>" onclick="changeActivityPage(<?= $i ?>)">
-						<?= $i ?>
-					</button>
-				<?php endfor; ?>
-			</div>
-			
-			<button class="pagination-btn" onclick="changeActivityPage(<?= $pageNumber + 1 ?>)" <?= $pageNumber >= $totalPages ? 'disabled' : '' ?>>
-				Вперед
-			</button>
-			<button class="pagination-btn" onclick="changeActivityPage(<?= $totalPages ?>)" <?= $pageNumber >= $totalPages ? 'disabled' : '' ?>>
-				Последняя
-			</button>
+			<button class="pagination-btn" onclick="changeActivityPage(1)" <?= $pageNumber <= 1 ? 'disabled' : '' ?>>«</button>
+			<button class="pagination-btn" onclick="changeActivityPage(<?= $pageNumber - 1 ?>)" <?= $pageNumber <= 1 ? 'disabled' : '' ?>>‹</button>
+			<?php for ($i = max(1, $pageNumber-2); $i <= min($totalPages, $pageNumber+2); $i++): ?>
+				<button class="pagination-page <?= $i == $pageNumber ? 'active' : '' ?>"
+						onclick="changeActivityPage(<?= $i ?>)"><?= $i ?></button>
+			<?php endfor; ?>
+			<button class="pagination-btn" onclick="changeActivityPage(<?= $pageNumber + 1 ?>)" <?= $pageNumber >= $totalPages ? 'disabled' : '' ?>>›</button>
+			<button class="pagination-btn" onclick="changeActivityPage(<?= $totalPages ?>)" <?= $pageNumber >= $totalPages ? 'disabled' : '' ?>>»</button>
 		</div>
 	</div>
 	<?php endif; ?>
 </div>
 
+<style>
+/* Activity feed */
+.activity-feed { padding: 0; }
+
+.activity-row {
+	display: grid;
+	grid-template-columns: 8px 1fr auto auto auto;
+	gap: 0.75rem;
+	align-items: center;
+	padding: 0.625rem var(--spacing-lg);
+	border-bottom: 1px solid var(--border);
+	transition: background 0.12s ease;
+}
+.activity-row:last-child { border-bottom: none; }
+.activity-row:hover { background: var(--bg-secondary); }
+
+.activity-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	flex-shrink: 0;
+	justify-self: center;
+}
+.activity-dot--success  { background: var(--success); }
+.activity-dot--danger   { background: var(--danger); }
+.activity-dot--warning  { background: var(--warning); }
+.activity-dot--accent   { background: var(--accent); }
+.activity-dot--primary  { background: #3b82f6; }
+
+.activity-main { min-width: 0; }
+.activity-desc {
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--text-primary);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.activity-meta {
+	display: flex;
+	gap: 0.75rem;
+	margin-top: 2px;
+}
+.activity-meta-item {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	font-size: 0.6875rem;
+	color: var(--text-secondary);
+}
+.activity-badge { flex-shrink: 0; }
+.activity-user  { font-size: 0.6875rem; color: var(--text-muted); min-width: 60px; text-align: right; }
+.activity-time  { font-size: 0.6875rem; color: var(--text-muted); white-space: nowrap; min-width: 110px; text-align: right; }
+
+/* Stat icon variants */
+.stat-icon--success { background: rgba(39,174,96,.12); }
+.stat-icon--success .icon { background-color: var(--success); }
+</style>
+
 <script>
 function applyActivityFilters() {
+	const url = new URL(window.location);
+	url.searchParams.set('page', 'dashboard');
 	const type = document.getElementById('activityTypeFilter').value;
 	const date = document.getElementById('activityDateFilter').value;
-	
-	const url = new URL(window.location);
-	url.searchParams.set('page', 'dashboard');
-	
-	// Устанавливаем или удаляем параметры фильтров
-	if (type === 'all') {
-		url.searchParams.delete('activity_type');
-	} else {
-		url.searchParams.set('activity_type', type);
-	}
-	
-	if (date) {
-		url.searchParams.set('activity_date', date);
-	} else {
-		url.searchParams.delete('activity_date');
-	}
-	
-	// Сбрасываем пагинацию при изменении фильтров
+	type === 'all' ? url.searchParams.delete('activity_type') : url.searchParams.set('activity_type', type);
+	date           ? url.searchParams.set('activity_date', date) : url.searchParams.delete('activity_date');
 	url.searchParams.delete('p');
-	
 	window.location.href = url.toString();
 }
-
 function clearActivityFilters() {
-	// Сбрасываем UI элементы
-	document.getElementById('activityTypeFilter').value = 'all';
-	document.getElementById('activityDateFilter').value = '';
-	
-	applyActivityFilters();
-}
-
-function clearActivityDateFilter() {
-	document.getElementById('activityDateFilter').value = '';
-	applyActivityFilters();
-}
-
-function removeActivityFilter(filterType) {
 	const url = new URL(window.location);
 	url.searchParams.set('page', 'dashboard');
-	
-	switch (filterType) {
-		case 'type':
-			url.searchParams.delete('activity_type');
-			// Сбрасываем селектор в UI
-			document.getElementById('activityTypeFilter').value = 'all';
-			break;
-		case 'date':
-			url.searchParams.delete('activity_date');
-			// Сбрасываем поле даты
-			document.getElementById('activityDateFilter').value = '';
-			break;
-	}
-	
+	url.searchParams.delete('activity_type');
+	url.searchParams.delete('activity_date');
 	url.searchParams.delete('p');
 	window.location.href = url.toString();
 }
-
 function changeActivityPage(page) {
 	const url = new URL(window.location);
 	url.searchParams.set('page', 'dashboard');
 	url.searchParams.set('p', page);
 	window.location.href = url.toString();
 }
-
-// Функция для отслеживания скачивания и показа уведомления
-function trackDownload(backupId, filename) {
-	// Создаем уведомление о скачивании
-	showDownloadNotification(filename);
-	
-	// Дополнительная логика может быть добавлена здесь
-	// Например, отправка аналитики на сервер
-	
-	// Продолжаем стандартное скачивание
-	return true;
-}
-
-// Функция для показа уведомления о скачивании
 function showDownloadNotification(filename) {
-	// Создаем элемент уведомления
-	const notification = document.createElement('div');
-	notification.className = 'download-notification';
-	notification.innerHTML = `
-		<div class="download-notification-content">
-			<div class="download-notification-header">
-				<span class="icon icon-download" style="background-color: var(--success);"></span>
-				<span class="download-notification-title">Скачивание бэкапа</span>
-				<button class="download-notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
-			</div>
-			<div class="download-notification-body">
-				<div class="download-file-info">
-					<strong>Файл:</strong> ${filename}
-				</div>
-				<div class="download-user-info">
-					<strong>Пользователь:</strong> <?= htmlspecialchars($_SESSION['username']) ?>
-				</div>
-				<div class="download-time-info">
-					<strong>Время:</strong> ${new Date().toLocaleTimeString()}
-				</div>
-			</div>
-		</div>
-	`;
-	
-	// Добавляем уведомление в контейнер
-	const container = document.getElementById('downloadNotifications') || createDownloadNotificationsContainer();
-	container.appendChild(notification);
-	
-	// Автоматически удаляем уведомление через 5 секунд
-	setTimeout(() => {
-		if (notification.parentElement) {
-			notification.remove();
-		}
-	}, 5000);
+	const n = document.createElement('div');
+	n.className = 'download-notification';
+	n.textContent = 'Скачан: ' + filename;
+	const c = document.getElementById('notifications-container');
+	if (c) c.appendChild(n);
+	setTimeout(() => n.remove(), 4000);
 }
-
-// Функция для создания контейнера уведомлений
-function createDownloadNotificationsContainer() {
-	const container = document.createElement('div');
-	container.id = 'downloadNotifications';
-	container.className = 'download-notifications-container';
-	document.body.appendChild(container);
-	return container;
-}
+function trackDownload(id, filename) { showDownloadNotification(filename); return true; }
 </script>
