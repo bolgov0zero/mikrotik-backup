@@ -200,19 +200,24 @@ try {
 		}
 
 		// Отправляем уведомление на Email
-		$emailCfg      = getEmailSettings($db);
-		$customTpl     = getCustomTemplate($db);
+		$emailCfg  = getEmailSettings($db);
+		$customTpl = getCustomTemplate($db);
+		logToFile("Email: enabled={$emailCfg['enabled']}, host={$emailCfg['host']}, to={$emailCfg['to_email']}");
+		logToFile("Custom template: enabled=" . ($customTpl['enabled'] ? '1' : '0') . ", body_len=" . strlen($customTpl['body']));
 		if ($customTpl['enabled'] && !empty($customTpl['body'])) {
+			logToFile("Используется кастомный шаблон");
 			$emailHtml = applyCustomTemplate($customTpl['body'], $successCount, $errorCount, $deviceCount, $failedDevices, $customTpl['error_block']);
-			$emailSent = sendEmailNotification($emailCfg['subject'] ?: 'MikroTik Backup Report', $emailHtml);
+			$emailResult = sendEmailNotificationDebug($emailCfg['subject'] ?: 'MikroTik Backup Report', $emailHtml);
 		} else {
-			$emailHtml = buildBackupEmailBody($successCount, $errorCount, $failedDevices, $deviceCount);
-			$emailSent = sendEmailNotification($emailCfg['subject'] ?: 'MikroTik Backup Report', $emailHtml, $telegram_message);
+			logToFile("Используется стандартный шаблон");
+			$emailHtml   = buildBackupEmailBody($successCount, $errorCount, $failedDevices, $deviceCount);
+			$emailResult = sendEmailNotificationDebug($emailCfg['subject'] ?: 'MikroTik Backup Report', $emailHtml, $telegram_message);
 		}
+		$emailSent = $emailResult['success'];
 		if ($emailSent) {
 			logToFile("✅ Уведомление отправлено на Email");
 		} else {
-			logToFile("ℹ️ Уведомление на Email не отправлено (возможно, не настроено)");
+			logToFile("❌ Email не отправлен: " . ($emailResult['error'] ?? 'неизвестная причина'));
 		}
 
 		logToFile("=== ЗАПЛАНИРОВАННЫЙ БЭКАП УСПЕШНО ВЫПОЛНЕН ===");

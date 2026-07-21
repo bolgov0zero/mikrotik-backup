@@ -946,6 +946,29 @@ function sendEmailNotification($subject, $htmlBody, $textBody = '') {
 	}
 }
 
+function sendEmailNotificationDebug($subject, $htmlBody, $textBody = '') {
+	try {
+		$db = initDatabase();
+		$cfg = getEmailSettings($db);
+		$db->close();
+
+		if (!$cfg['enabled']) {
+			return ['success' => false, 'error' => 'Email уведомления отключены (enabled=0)'];
+		}
+		if (empty($cfg['host'])) {
+			return ['success' => false, 'error' => 'Не указан SMTP хост'];
+		}
+		if (empty($cfg['to_email'])) {
+			return ['success' => false, 'error' => 'Не указан получатель'];
+		}
+
+		return smtpSend($cfg, $cfg['to_email'], $subject, $htmlBody, $textBody);
+
+	} catch (Exception $e) {
+		return ['success' => false, 'error' => $e->getMessage()];
+	}
+}
+
 function testEmailConnection($cfg) {
 	if (empty($cfg['host']) || empty($cfg['to_email'])) {
 		return ['success' => false, 'error' => 'Укажите SMTP-хост и адрес получателя'];
