@@ -526,13 +526,20 @@ function createMikrotikBackup($device, $type) {
 
 // Функция для массового создания бэкапов (улучшенная версия)
 function createMassBackup($db) {
-	$devices = $db->query('SELECT * FROM devices');
+	// Сначала считываем все устройства в массив, чтобы закрыть read-курсор
+	// до начала write-операций (иначе SQLite блокируется)
+	$devicesResult = $db->query('SELECT * FROM devices');
+	$devicesList = [];
+	while ($row = $devicesResult->fetchArray(SQLITE3_ASSOC)) {
+		$devicesList[] = $row;
+	}
+
 	$results = [];
 	$successCount = 0;
 	$errorCount = 0;
 	$processedDevices = [];
-	
-	while ($device = $devices->fetchArray(SQLITE3_ASSOC)) {
+
+	foreach ($devicesList as $device) {
 		$processedDevices[] = $device['name'];
 		
 		// Создаем полный бэкап
@@ -569,7 +576,7 @@ function createMassBackup($db) {
 		// Пауза между устройствами
 		sleep(2);
 	}
-	
+
 	return [
 		'success' => ($successCount > 0),
 		'message' => "Массовое резервное копирование завершено. Успешно: $successCount, Ошибок: $errorCount",
