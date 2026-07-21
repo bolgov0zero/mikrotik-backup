@@ -1,6 +1,7 @@
 <?php
-$telegramSettings = getTelegramSettings($db);
-$emailSettings    = getEmailSettings($db);
+$telegramSettings   = getTelegramSettings($db);
+$emailSettings      = getEmailSettings($db);
+$customTemplate     = getCustomTemplate($db);
 ?>
 
 <div class="settings-page">
@@ -180,6 +181,65 @@ $emailSettings    = getEmailSettings($db);
 			</div>
 		</form>
 	</div>
+	<!-- Кастомный шаблон -->
+	<div class="settings-card">
+		<form method="POST" id="customTemplateForm">
+			<input type="hidden" name="action" value="save_custom_template">
+
+			<div class="settings-row">
+				<div class="settings-row-icon">
+					<span class="icon icon-email"></span>
+				</div>
+				<div class="settings-row-text">
+					<div class="settings-row-title">Кастомный шаблон</div>
+					<div class="settings-row-desc">HTML-шаблон для отправки через n8n в Telegram</div>
+				</div>
+				<div class="settings-row-control">
+					<label class="toggle">
+						<input type="checkbox" name="custom_template_enabled" value="1" id="customTemplateToggle"
+							   <?= $customTemplate['enabled'] ? 'checked' : '' ?>>
+						<span class="toggle-slider"></span>
+					</label>
+				</div>
+			</div>
+
+			<div class="settings-form-area" id="customTemplateArea" style="<?= $customTemplate['enabled'] ? '' : 'display:none;' ?>">
+				<div class="form-group" style="margin-bottom:0.5rem;">
+					<label>Шаблон письма</label>
+					<textarea name="custom_template_body" class="form-control"
+							  rows="7"
+							  placeholder="Введите HTML-шаблон..."
+							  style="font-family:monospace;font-size:13px;resize:vertical;"><?= htmlspecialchars($customTemplate['body']) ?></textarea>
+				</div>
+				<div style="font-size:12px;color:#888;margin-bottom:0.75rem;">
+					Переменные:
+					<code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;">{{success_count}}</code>
+					<code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;">{{error_count}}</code>
+					<code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;">{{device_count}}</code>
+					<code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;">{{date}}</code>
+					<code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;">{{time}}</code>
+					<code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;">{{error_block}}</code>
+					&nbsp;·&nbsp; Теги: <code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;">&lt;b&gt;</code>
+					<code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;">&lt;i&gt;</code>
+					<code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;">&lt;blockquote&gt;</code>
+				</div>
+
+				<div class="form-group" style="margin-bottom:0.5rem;">
+					<label>Блок ошибок <span style="font-weight:400;color:#888;">(подставляется в <code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;">{{error_block}}</code>, только если есть ошибки)</span></label>
+					<textarea name="custom_template_error_block" class="form-control"
+							  rows="4"
+							  placeholder="Пример: Устройства с ошибками:&#10;{{failed_devices}}"
+							  style="font-family:monospace;font-size:13px;resize:vertical;"><?= htmlspecialchars($customTemplate['error_block']) ?></textarea>
+				</div>
+				<div style="font-size:12px;color:#888;margin-bottom:0.75rem;">
+					Переменная внутри блока ошибок:
+					<code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;">{{failed_devices}}</code> — список устройств, каждое с новой строки
+				</div>
+
+				<button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+			</div>
+		</form>
+	</div>
 	</div><!-- /settings-section-group Уведомления -->
 
 	<!-- Пользователи -->
@@ -317,6 +377,10 @@ function testEmailConnection() {
 	document.body.appendChild(testForm);
 	testForm.submit();
 }
+
+document.getElementById('customTemplateToggle').addEventListener('change', function() {
+	document.getElementById('customTemplateArea').style.display = this.checked ? '' : 'none';
+});
 
 function deleteUser(username) {
 	if (!confirm(`Удалить пользователя "${username}"?`)) return;

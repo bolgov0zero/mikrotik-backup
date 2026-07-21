@@ -102,7 +102,10 @@ function initDatabase() {
 	
 	// Добавляем настройки по умолчанию
 	$defaultSettings = [
-		'backup_schedule_time' => '02:00'
+		'backup_schedule_time'   => '02:00',
+		'custom_template_enabled'     => '0',
+		'custom_template_body'        => '',
+		'custom_template_error_block' => '',
 	];
 	
 	foreach ($defaultSettings as $key => $value) {
@@ -668,6 +671,36 @@ function saveEmailSettings($db, $data) {
 	$stmt->bindValue(9,  $data['subject'],    SQLITE3_TEXT);
 	$stmt->bindValue(10, $data['enabled'] ? 1 : 0, SQLITE3_INTEGER);
 	return $stmt->execute();
+}
+
+// ─── Кастомный шаблон ────────────────────────────────────────────────────────
+
+function getCustomTemplate($db) {
+	return [
+		'enabled'            => (bool)getSetting($db, 'custom_template_enabled', '0'),
+		'body'               => getSetting($db, 'custom_template_body', ''),
+		'error_block'        => getSetting($db, 'custom_template_error_block', ''),
+	];
+}
+
+function saveCustomTemplate($db, $enabled, $body, $errorBlock = '') {
+	setSetting($db, 'custom_template_enabled', $enabled ? '1' : '0');
+	setSetting($db, 'custom_template_body', $body);
+	setSetting($db, 'custom_template_error_block', $errorBlock);
+}
+
+function applyCustomTemplate($template, $successCount, $errorCount, $deviceCount = 0, $failedDevices = [], $errorBlockTemplate = '') {
+	$errorBlock = '';
+	if ($errorCount > 0 && !empty($failedDevices) && !empty($errorBlockTemplate)) {
+		$failedList = implode("\n", $failedDevices);
+		$errorBlock = str_replace('{{failed_devices}}', $failedList, $errorBlockTemplate);
+	}
+
+	return str_replace(
+		['{{success_count}}', '{{error_count}}', '{{device_count}}', '{{date}}', '{{time}}', '{{error_block}}'],
+		[$successCount, $errorCount, $deviceCount, date('d.m.Y'), date('H:i:s'), $errorBlock],
+		$template
+	);
 }
 
 // Простой SMTP-клиент на сокетах (без внешних зависимостей)

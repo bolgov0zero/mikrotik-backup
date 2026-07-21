@@ -200,9 +200,15 @@ try {
 		}
 
 		// Отправляем уведомление на Email
-		$emailCfg  = getEmailSettings($db);
-		$emailHtml = buildBackupEmailBody($successCount, $errorCount, $failedDevices, $deviceCount);
-		$emailSent = sendEmailNotification($emailCfg['subject'] ?: 'MikroTik Backup Report', $emailHtml, $telegram_message);
+		$emailCfg      = getEmailSettings($db);
+		$customTpl     = getCustomTemplate($db);
+		if ($customTpl['enabled'] && !empty($customTpl['body'])) {
+			$emailHtml = applyCustomTemplate($customTpl['body'], $successCount, $errorCount, $deviceCount, $failedDevices, $customTpl['error_block']);
+			$emailSent = sendEmailNotification($emailCfg['subject'] ?: 'MikroTik Backup Report', $emailHtml);
+		} else {
+			$emailHtml = buildBackupEmailBody($successCount, $errorCount, $failedDevices, $deviceCount);
+			$emailSent = sendEmailNotification($emailCfg['subject'] ?: 'MikroTik Backup Report', $emailHtml, $telegram_message);
+		}
 		if ($emailSent) {
 			logToFile("✅ Уведомление отправлено на Email");
 		} else {

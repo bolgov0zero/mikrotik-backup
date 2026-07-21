@@ -318,6 +318,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			logActivity($db, 'email_save', 'Настройки Email сохранены');
 			break;
 
+		case 'save_custom_template':
+			saveCustomTemplate(
+				$db,
+				isset($_POST['custom_template_enabled']),
+				$_POST['custom_template_body'] ?? '',
+				$_POST['custom_template_error_block'] ?? ''
+			);
+			$_SESSION['settings_success'] = 'Кастомный шаблон сохранён';
+			logActivity($db, 'custom_template_save', 'Кастомный шаблон сохранён');
+			break;
+
 		case 'test_email':
 			$testCfg = [
 				'host'       => trim($_POST['email_host'] ?? ''),
