@@ -239,11 +239,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			
 		case 'mass_backup':
 			$massBackupResult = createMassBackup($db);
+			$successCount  = $massBackupResult['success_count'];
+			$errorCount    = $massBackupResult['error_count'];
+			$deviceCount   = count($massBackupResult['processed_devices']);
+			$failedDevices = $massBackupResult['failed_devices'] ?? [];
+
 			if ($massBackupResult['success']) {
 				$_SESSION['backup_success'] = $massBackupResult['message'];
-				logActivity($db, 'mass_backup', 'Массовое резервное копирование завершено. Успешно: ' . $massBackupResult['success_count'] . ', Ошибок: ' . $massBackupResult['error_count']);
+				logActivity($db, 'mass_backup', 'Массовое резервное копирование завершено. Успешно: ' . $successCount . ', Ошибок: ' . $errorCount);
 			} else {
-				$_SESSION['backup_error'] = 'Ошибка массового бэкапа: ' . $massBackupResult['error'];
+				$_SESSION['backup_error'] = 'Ошибка массового бэкапа: ' . ($massBackupResult['error'] ?? '');
+			}
+
+			// Telegram
+			$tgMsg  = "<b>Массовый бэкап MikroTik</b>\n";
+			$tgMsg .= "<b>Время:</b> <i>" . date('Y-m-d H:i:s') . "</i>\n\n";
+			$tgMsg .= "<blockquote><b>Успешно:</b> <i>{$successCount}</i>\n";
+			$tgMsg .= "<b>Ошибок:</b> <i>{$errorCount}</i></blockquote>\n";
+			if ($errorCount > 0 && !empty($failedDevices)) {
+				$tgMsg .= "\n<b>ВНИМАНИЕ!</b> <i>Есть ошибки!</i>\n";
+				$tgMsg .= "<blockquote>" . implode(', ', array_map(fn($d) => "<i>{$d}</i>", $failedDevices)) . "</blockquote>";
+			}
+			sendTelegramNotification($tgMsg);
+
+			// Email
+			$emailCfg  = getEmailSettings($db);
+			$customTpl = getCustomTemplate($db);
+			if ($emailCfg['enabled'] && !empty($emailCfg['host']) && !empty($emailCfg['to_email'])) {
+				if ($customTpl['enabled'] && !empty($customTpl['body'])) {
+					$emailHtml = applyCustomTemplate($customTpl['body'], $successCount, $errorCount, $deviceCount, $failedDevices, $customTpl['error_block']);
+				} else {
+					$emailHtml = buildBackupEmailBody($successCount, $errorCount, $failedDevices, $deviceCount);
+				}
+				smtpSend($emailCfg, $emailCfg['to_email'], $emailCfg['subject'] ?: 'MikroTik Backup Report', $emailHtml);
 			}
 			break;
 			

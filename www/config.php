@@ -538,9 +538,11 @@ function createMassBackup($db) {
 	$successCount = 0;
 	$errorCount = 0;
 	$processedDevices = [];
+	$failedDevices = [];
 
 	foreach ($devicesList as $device) {
 		$processedDevices[] = $device['name'];
+		$deviceHasError = false;
 		
 		// Создаем полный бэкап
 		$fullResult = createMikrotikBackup($device, 'full');
@@ -554,11 +556,12 @@ function createMassBackup($db) {
 			$successCount++;
 		} else {
 			$errorCount++;
+			$deviceHasError = true;
 		}
-		
+
 		// Небольшая пауза между бэкапами
 		sleep(1);
-		
+
 		// Создаем экспорт конфигурации
 		$configResult = createMikrotikBackup($device, 'config');
 		if ($configResult['success']) {
@@ -571,8 +574,13 @@ function createMassBackup($db) {
 			$successCount++;
 		} else {
 			$errorCount++;
+			$deviceHasError = true;
 		}
-		
+
+		if ($deviceHasError) {
+			$failedDevices[] = $device['name'];
+		}
+
 		// Пауза между устройствами
 		sleep(2);
 	}
@@ -582,6 +590,7 @@ function createMassBackup($db) {
 		'message' => "Массовое резервное копирование завершено. Успешно: $successCount, Ошибок: $errorCount",
 		'success_count' => $successCount,
 		'error_count' => $errorCount,
+		'failed_devices' => $failedDevices,
 		'processed_devices' => $processedDevices
 	];
 }
