@@ -13,7 +13,7 @@
  ```bash
  bash <(wget -qO- https://raw.githubusercontent.com/bolgov0zero/mikrotik-backup/refs/heads/master/backup-install.sh)
  ```
-Скрипт установит Docker/Docker compose, установит саму панель и скрипт ads, для удобного управление панелью(запуск, перезапуск, обновление, завершение).
+Скрипт установит Docker/Docker compose, установит саму панель и скрипт backup, для удобного управление панелью(запуск, перезапуск, обновление, завершение).
 
 После установки в системе создается учетная запись:<br/>
 Логин: admin<br/>
