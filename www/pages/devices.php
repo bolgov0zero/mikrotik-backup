@@ -55,19 +55,10 @@ $devices->reset();
 			<div class="device-card__status-badge device-card__status-badge--<?= $statusClass ?>"><?= $statusLabel ?></div>
 		</div>
 
-		<!-- Model chip -->
-		<?php if (!empty($device['model']) || !empty($rosVersion)): ?>
-		<div style="margin-bottom:0.625rem; display:flex; gap:0.375rem; flex-wrap:wrap;">
-			<?php if (!empty($device['model'])): ?>
-				<span class="device-model-chip"><?= htmlspecialchars($device['model']) ?></span>
-			<?php endif; ?>
-			<?php if (!empty($rosVersion)): ?>
-				<span class="device-model-chip device-model-chip--ros" title="Версия RouterOS на момент последнего бэкапа">RouterOS <?= htmlspecialchars($rosVersion) ?></span>
-			<?php endif; ?>
-		</div>
-		<?php endif; ?>
-
 		<!-- Details -->
+		<?php
+			$rosVersionClean = $rosVersion ? trim(preg_replace('/\s*\(.*\)\s*$/', '', $rosVersion)) : null;
+		?>
 		<div class="device-card__details">
 			<div class="device-card__detail">
 				<span class="device-card__detail-label">Адрес</span>
@@ -86,6 +77,14 @@ $devices->reset();
 			<div class="device-card__detail">
 				<span class="device-card__detail-label">Добавлено</span>
 				<span class="device-card__detail-value"><?= formatDbDateTime($device['created_at']) ?></span>
+			</div>
+			<div class="device-card__detail">
+				<span class="device-card__detail-label">Модель</span>
+				<span class="device-card__detail-value"><?= !empty($device['model']) ? htmlspecialchars($device['model']) : '—' ?></span>
+			</div>
+			<div class="device-card__detail">
+				<span class="device-card__detail-label">Версия</span>
+				<span class="device-card__detail-value"><?= $rosVersionClean ? htmlspecialchars($rosVersionClean) : '—' ?></span>
 			</div>
 		</div>
 
@@ -186,22 +185,6 @@ $devices->reset();
 }
 .device-card__status-badge--online  { background: var(--success-bg); color: var(--success); }
 .device-card__status-badge--offline { background: var(--danger-bg);  color: var(--danger); }
-
-.device-model-chip {
-	display: inline-block;
-	font-size: 0.6875rem;
-	font-weight: 500;
-	color: var(--text-secondary);
-	background: var(--bg-tertiary);
-	border: 1px solid var(--border-light);
-	border-radius: var(--radius-xs);
-	padding: 2px 8px;
-}
-.device-model-chip--ros {
-	color: var(--primary, #3498db);
-	border-color: var(--primary, #3498db);
-	background: transparent;
-}
 
 .device-card__details {
 	display: flex;
