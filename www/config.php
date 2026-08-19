@@ -428,10 +428,242 @@ function getMikrotikVersion($device) {
 	}
 	
 	ssh2_disconnect($connection);
-	
+
 	return [
 		'success' => true,
 		'version' => $version
+	];
+}
+
+// ============================================================================
+// Функции для обновления RouterOS и RouterBoard
+// ============================================================================
+
+// Вспомогательная функция для парсинга вывода `print` от MikroTik
+function mikrotikParseField($output, $field) {
+	if (preg_match('/' . preg_quote($field, '/') . ':\s*(.+)/i', $output, $m)) {
+		return trim($m[1]);
+	}
+	return '';
+}
+
+// Получить полный статус системы: версия ROS, firmware RouterBoard, состояние обновлений
+function getMikrotikSystemStatus($device) {
+	if (!function_exists('ssh2_connect')) {
+		return ['success' => false, 'error' => 'SSH2 расширение не установлено'];
+	}
+
+	$connection = @ssh2_connect($device['ip'], $device['port']);
+	if (!$connection) {
+		return ['success' => false, 'error' => 'Не удалось подключиться к устройству'];
+	}
+
+	if (!@ssh2_auth_password($connection, $device['username'], $device['password'])) {
+		return ['success' => false, 'error' => 'Неверные учетные данные SSH'];
+	}
+
+	// RouterOS + модель
+	$res = sshExec($connection, '/system resource print');
+	$rosVersion = 'Unknown';
+	$board = 'Unknown';
+	if ($res['success']) {
+		$v = mikrotikParseField($res['output'], 'version');
+		if ($v !== '') $rosVersion = $v;
+		$b = mikrotikParseField($res['output'], 'board-name');
+		if ($b !== '') $board = $b;
+	}
+
+	// RouterBoard firmware
+	$rb = sshExec($connection, '/system routerboard print');
+	$currentFw = '';
+	$upgradeFw = '';
+	$factoryFw = '';
+	if ($rb['success']) {
+		$currentFw = mikrotikParseField($rb['output'], 'current-firmware');
+		$upgradeFw = mikrotikParseField($rb['output'], 'upgrade-firmware');
+		$factoryFw = mikrotikParseField($rb['output'], 'factory-firmware');
+	}
+
+	// Статус пакетов обновления
+	$upd = sshExec($connection, '/system package update print');
+	$channel = '';
+	$installedVersion = '';
+	$latestVersion = '';
+	$updateStatus = '';
+	if ($upd['success']) {
+		$channel          = mikrotikParseField($upd['output'], 'channel');
+		$installedVersion = mikrotikParseField($upd['output'], 'installed-version');
+		$latestVersion    = mikrotikParseField($upd['output'], 'latest-version');
+		$updateStatus     = mikrotikParseField($upd['output'], 'status');
+	}
+
+	ssh2_disconnect($connection);
+
+	return [
+		'success'           => true,
+		'ros_version'       => $rosVersion,
+		'board'             => $board,
+		'current_fw'        => $currentFw,
+		'upgrade_fw'        => $upgradeFw,
+		'factory_fw'        => $factoryFw,
+		'channel'           => $channel,
+		'installed_version' => $installedVersion,
+		'latest_version'    => $latestVersion,
+		'update_status'     => $updateStatus,
+		'fw_upgrade_available' => ($currentFw !== '' && $upgradeFw !== '' && $currentFw !== $upgradeFw),
+		'ros_update_available' => ($installedVersion !== '' && $latestVersion !== '' && $installedVersion !== $latestVersion),
+	];
+}
+
+// Запуск проверки обновлений (асинхронный) и получение результата
+function mikrotikCheckForUpdates($device) {
+	if (!function_exists('ssh2_connect')) {
+		return ['success' => false, 'error' => 'SSH2 расширение не установлено'];
+	}
+
+	$connection = @ssh2_connect($device['ip'], $device['port']);
+	if (!$connection) {
+		return ['success' => false, 'error' => 'Не удалось подключиться к устройству'];
+	}
+
+	if (!@ssh2_auth_password($connection, $device['username'], $device['password'])) {
+		return ['success' => false, 'error' => 'Неверные учетные данные SSH'];
+	}
+
+	// Запускаем проверку
+	sshExec($connection, '/system package update check-for-updates');
+
+	// Ждём результат: опрашиваем статус до 10 секунд
+	$installedVersion = '';
+	$latestVersion = '';
+	$updateStatus = '';
+	for ($i = 0; $i < 10; $i++) {
+		sleep(1);
+		$upd = sshExec($connection, '/system package update print');
+		if ($upd['success']) {
+			$installedVersion = mikrotikParseField($upd['output'], 'installed-version');
+			$latestVersion    = mikrotikParseField($upd['output'], 'latest-version');
+			$updateStatus     = mikrotikParseField($upd['output'], 'status');
+			// Если статус изменился с "checking" или пришла новая версия — выходим
+			if ($updateStatus !== '' && stripos($updateStatus, 'checking') === false) {
+				break;
+			}
+			if ($latestVersion !== '' && $latestVersion !== $installedVersion) {
+				break;
+			}
+		}
+	}
+
+	ssh2_disconnect($connection);
+
+	return [
+		'success'           => true,
+		'installed_version' => $installedVersion,
+		'latest_version'    => $latestVersion,
+		'update_status'     => $updateStatus,
+		'ros_update_available' => ($installedVersion !== '' && $latestVersion !== '' && $installedVersion !== $latestVersion),
+	];
+}
+
+// Скачать обновление RouterOS (без автоматической перезагрузки)
+function mikrotikDownloadUpdate($device) {
+	if (!function_exists('ssh2_connect')) {
+		return ['success' => false, 'error' => 'SSH2 расширение не установлено'];
+	}
+
+	$connection = @ssh2_connect($device['ip'], $device['port']);
+	if (!$connection) {
+		return ['success' => false, 'error' => 'Не удалось подключиться к устройству'];
+	}
+
+	if (!@ssh2_auth_password($connection, $device['username'], $device['password'])) {
+		return ['success' => false, 'error' => 'Неверные учетные данные SSH'];
+	}
+
+	$res = sshExec($connection, '/system package update download');
+	if (!$res['success']) {
+		ssh2_disconnect($connection);
+		return ['success' => false, 'error' => 'Не удалось запустить загрузку обновления'];
+	}
+
+	// Ждём завершения загрузки (до 60 сек)
+	$finalStatus = '';
+	for ($i = 0; $i < 60; $i++) {
+		sleep(1);
+		$upd = sshExec($connection, '/system package update print');
+		if ($upd['success']) {
+			$finalStatus = mikrotikParseField($upd['output'], 'status');
+			// Успешная загрузка обычно даёт статус вроде "Downloaded, please reboot..."
+			if ($finalStatus !== '' && stripos($finalStatus, 'download') === false) {
+				break;
+			}
+		}
+	}
+
+	ssh2_disconnect($connection);
+
+	return [
+		'success' => true,
+		'status'  => $finalStatus,
+		'message' => 'Обновление скачано. Для применения нажмите «Перезагрузить».',
+	];
+}
+
+// Пометить firmware RouterBoard для апгрейда (применится при следующей перезагрузке)
+function mikrotikUpgradeFirmware($device) {
+	if (!function_exists('ssh2_connect')) {
+		return ['success' => false, 'error' => 'SSH2 расширение не установлено'];
+	}
+
+	$connection = @ssh2_connect($device['ip'], $device['port']);
+	if (!$connection) {
+		return ['success' => false, 'error' => 'Не удалось подключиться к устройству'];
+	}
+
+	if (!@ssh2_auth_password($connection, $device['username'], $device['password'])) {
+		return ['success' => false, 'error' => 'Неверные учетные данные SSH'];
+	}
+
+	// Команда требует подтверждения — используем без-интерактивный флаг через ";" и "y"
+	// MikroTik SSH принимает подтверждение через отдельный ввод — используем "/system routerboard upgrade" с подавлением
+	$res = sshExec($connection, ':put [/system routerboard upgrade];');
+
+	ssh2_disconnect($connection);
+
+	if (!$res['success']) {
+		return ['success' => false, 'error' => 'Не удалось запустить апгрейд firmware'];
+	}
+
+	return [
+		'success' => true,
+		'message' => 'Апгрейд firmware запланирован. Для применения нажмите «Перезагрузить».',
+	];
+}
+
+// Перезагрузка устройства
+function mikrotikReboot($device) {
+	if (!function_exists('ssh2_connect')) {
+		return ['success' => false, 'error' => 'SSH2 расширение не установлено'];
+	}
+
+	$connection = @ssh2_connect($device['ip'], $device['port']);
+	if (!$connection) {
+		return ['success' => false, 'error' => 'Не удалось подключиться к устройству'];
+	}
+
+	if (!@ssh2_auth_password($connection, $device['username'], $device['password'])) {
+		return ['success' => false, 'error' => 'Неверные учетные данные SSH'];
+	}
+
+	// Команда reboot в MikroTik требует подтверждения "y" — оборачиваем в script
+	@sshExec($connection, ':execute { /system reboot }');
+
+	// SSH-соединение может закрыться раньше, чем придёт ответ — это норма
+	@ssh2_disconnect($connection);
+
+	return [
+		'success' => true,
+		'message' => 'Команда перезагрузки отправлена. Устройство будет недоступно 1–3 минуты.',
 	];
 }
 

@@ -91,6 +91,10 @@ $devices->reset();
 				<span class="icon icon-backup"></span>
 				Бэкап
 			</button>
+			<button class="btn btn-outline btn-sm" onclick="openUpdateModal(<?= $id ?>, '<?= htmlspecialchars($device['name'], ENT_QUOTES) ?>')" title="Обновление RouterOS / RouterBoard">
+				<span class="icon icon-update"></span>
+				Обновление
+			</button>
 			<div class="device-card__actions-right">
 				<button class="btn btn-outline btn-sm" onclick="editDevice(<?= $id ?>)" title="Редактировать">
 					<span class="icon icon-edit"></span>

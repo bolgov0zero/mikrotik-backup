@@ -21,7 +21,7 @@ $page = $_GET['page'] ?? 'dashboard';
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'get_device' && isset($_GET['id'])) {
 	$deviceId = intval($_GET['id']);
 	$device = getDeviceById($db, $deviceId);
-	
+
 	if ($device) {
 		header('Content-Type: application/json');
 		echo json_encode(['success' => true, 'device' => $device]);
@@ -29,6 +29,57 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'get_device' && isset($_GET['id'])
 		header('Content-Type: application/json');
 		echo json_encode(['success' => false, 'error' => 'Устройство не найдено']);
 	}
+	exit;
+}
+
+// AJAX: действия обновления RouterOS/RouterBoard
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'update_action') {
+	header('Content-Type: application/json');
+
+	$deviceId   = intval($_POST['device_id'] ?? 0);
+	$actionType = $_POST['action_type'] ?? '';
+	$device     = getDeviceById($db, $deviceId);
+
+	if (!$device) {
+		echo json_encode(['success' => false, 'error' => 'Устройство не найдено']);
+		exit;
+	}
+
+	set_time_limit(120);
+
+	switch ($actionType) {
+		case 'status':
+			$result = getMikrotikSystemStatus($device);
+			break;
+		case 'check':
+			$result = mikrotikCheckForUpdates($device);
+			if ($result['success']) {
+				logActivity($db, 'device_update_check', 'Проверка обновлений: ' . ($result['latest_version'] ?: 'нет данных'), $device['name']);
+			}
+			break;
+		case 'update':
+			$result = mikrotikDownloadUpdate($device);
+			if ($result['success']) {
+				logActivity($db, 'device_update_download', 'Скачано обновление RouterOS', $device['name']);
+			}
+			break;
+		case 'upgrade_fw':
+			$result = mikrotikUpgradeFirmware($device);
+			if ($result['success']) {
+				logActivity($db, 'device_update_fw', 'Запланирован апгрейд firmware RouterBoard', $device['name']);
+			}
+			break;
+		case 'reboot':
+			$result = mikrotikReboot($device);
+			if ($result['success']) {
+				logActivity($db, 'device_update_reboot', 'Отправлена команда перезагрузки', $device['name']);
+			}
+			break;
+		default:
+			$result = ['success' => false, 'error' => 'Неизвестное действие'];
+	}
+
+	echo json_encode($result);
 	exit;
 }
 
@@ -764,6 +815,114 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 		</div>
 	</div>
 
+	<!-- Модальное окно обновления устройства -->
+	<div id="updateModal" class="modal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h3>Обновление устройства <span id="updateModalDeviceName"></span></h3>
+				<button class="modal-close" onclick="closeUpdateModal()">×</button>
+			</div>
+
+			<div class="update-status-block">
+				<div class="update-row">
+					<span class="update-label">RouterOS:</span>
+					<span class="update-value" id="updRosVersion">—</span>
+				</div>
+				<div class="update-row">
+					<span class="update-label">Модель:</span>
+					<span class="update-value" id="updBoard">—</span>
+				</div>
+				<div class="update-row">
+					<span class="update-label">Firmware RouterBoard:</span>
+					<span class="update-value" id="updCurrentFw">—</span>
+				</div>
+				<div class="update-row" id="updUpgradeFwRow" style="display:none;">
+					<span class="update-label">Доступный firmware:</span>
+					<span class="update-value update-value--warn" id="updUpgradeFw">—</span>
+				</div>
+				<div class="update-row">
+					<span class="update-label">Канал обновлений:</span>
+					<span class="update-value" id="updChannel">—</span>
+				</div>
+				<div class="update-row" id="updLatestRow" style="display:none;">
+					<span class="update-label">Доступная версия RouterOS:</span>
+					<span class="update-value update-value--warn" id="updLatestVersion">—</span>
+				</div>
+				<div class="update-row" id="updStatusRow" style="display:none;">
+					<span class="update-label">Статус:</span>
+					<span class="update-value" id="updStatus">—</span>
+				</div>
+			</div>
+
+			<div class="update-actions">
+				<button type="button" class="btn btn-outline" id="updBtnCheck" onclick="updateCheck()">
+					<span class="icon icon-test"></span>
+					Проверить обновления
+				</button>
+				<button type="button" class="btn btn-primary" id="updBtnUpdate" onclick="updateDownload()" disabled>
+					<span class="icon icon-download"></span>
+					Обновить RouterOS
+				</button>
+				<button type="button" class="btn btn-primary" id="updBtnUpgradeFw" onclick="updateUpgradeFw()" disabled>
+					<span class="icon icon-update"></span>
+					Апгрейд RouterBoard
+				</button>
+				<button type="button" class="btn btn-danger" id="updBtnReboot" onclick="updateReboot()">
+					<span class="icon icon-refresh"></span>
+					Перезагрузить
+				</button>
+			</div>
+
+			<div class="update-log" id="updateLog"></div>
+		</div>
+	</div>
+
+	<style>
+	#updateModal .modal-content { max-width: 560px; }
+	.update-status-block {
+		background: var(--bg-tertiary);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-xs);
+		padding: 0.75rem 1rem;
+		margin-bottom: 1rem;
+	}
+	.update-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		padding: 4px 0;
+		font-size: 0.8125rem;
+	}
+	.update-label { color: var(--text-muted); }
+	.update-value { color: var(--text-primary); font-weight: 600; }
+	.update-value--warn { color: var(--warning, #e67e22); }
+	.update-actions {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+	.update-actions .btn { width: 100%; }
+	.update-log {
+		max-height: 160px;
+		overflow-y: auto;
+		font-family: monospace;
+		font-size: 0.75rem;
+		background: var(--bg-secondary, #f8f9fa);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-xs);
+		padding: 0.5rem 0.75rem;
+		color: var(--text-secondary);
+		white-space: pre-wrap;
+		min-height: 40px;
+	}
+	.update-log:empty::before {
+		content: 'Лог операций появится здесь…';
+		color: var(--text-muted);
+		font-style: italic;
+	}
+	</style>
+
 	<script>
 		function openModal(modalId) {
 			document.getElementById(modalId).style.display = 'flex';
@@ -895,12 +1054,181 @@ $userInitial = strtoupper(mb_substr($currentUser, 0, 1));
 		
 		function openBackupModal(deviceId) {
 			document.getElementById('backup_device_id').value = deviceId;
-			
+
 			setTimeout(() => {
 				selectBackupType('full');
 			}, 10);
-			
+
 			openModal('backupModal');
+		}
+
+		// ==== Обновление устройства ====
+		let updateCurrentDeviceId = null;
+
+		function updateLog(msg, type) {
+			const log = document.getElementById('updateLog');
+			const now = new Date().toLocaleTimeString('ru-RU');
+			const prefix = type === 'err' ? '✗ ' : (type === 'ok' ? '✓ ' : '• ');
+			log.textContent += `[${now}] ${prefix}${msg}\n`;
+			log.scrollTop = log.scrollHeight;
+		}
+
+		function updateSetButtonsDisabled(disabled) {
+			['updBtnCheck','updBtnUpdate','updBtnUpgradeFw','updBtnReboot'].forEach(id => {
+				const b = document.getElementById(id);
+				if (b) b.disabled = disabled;
+			});
+		}
+
+		function updateAjax(actionType) {
+			const fd = new FormData();
+			fd.append('device_id', updateCurrentDeviceId);
+			fd.append('action_type', actionType);
+			return fetch('?ajax=update_action', { method: 'POST', body: fd })
+				.then(r => r.json());
+		}
+
+		function updateApplyStatus(data) {
+			if (data.ros_version)       document.getElementById('updRosVersion').textContent = data.ros_version;
+			if (data.board)             document.getElementById('updBoard').textContent = data.board;
+			if (data.current_fw)        document.getElementById('updCurrentFw').textContent = data.current_fw;
+			if (data.channel)           document.getElementById('updChannel').textContent = data.channel;
+
+			if (data.fw_upgrade_available) {
+				document.getElementById('updUpgradeFwRow').style.display = 'flex';
+				document.getElementById('updUpgradeFw').textContent = data.upgrade_fw;
+				document.getElementById('updBtnUpgradeFw').disabled = false;
+			}
+
+			if (data.latest_version) {
+				document.getElementById('updLatestRow').style.display = 'flex';
+				document.getElementById('updLatestVersion').textContent = data.latest_version;
+			}
+			if (data.update_status) {
+				document.getElementById('updStatusRow').style.display = 'flex';
+				document.getElementById('updStatus').textContent = data.update_status;
+			}
+			if (data.ros_update_available) {
+				document.getElementById('updBtnUpdate').disabled = false;
+			}
+		}
+
+		function openUpdateModal(deviceId, deviceName) {
+			updateCurrentDeviceId = deviceId;
+			document.getElementById('updateModalDeviceName').textContent = deviceName ? '«' + deviceName + '»' : '';
+
+			// Сброс
+			['updRosVersion','updBoard','updCurrentFw','updChannel','updLatestVersion','updStatus','updUpgradeFw'].forEach(id => {
+				document.getElementById(id).textContent = '—';
+			});
+			document.getElementById('updUpgradeFwRow').style.display = 'none';
+			document.getElementById('updLatestRow').style.display = 'none';
+			document.getElementById('updStatusRow').style.display = 'none';
+			document.getElementById('updBtnUpdate').disabled = true;
+			document.getElementById('updBtnUpgradeFw').disabled = true;
+			document.getElementById('updateLog').textContent = '';
+
+			openModal('updateModal');
+			updateLog('Получение информации об устройстве…');
+			updateSetButtonsDisabled(true);
+
+			updateAjax('status').then(data => {
+				updateSetButtonsDisabled(false);
+				if (!data.success) {
+					updateLog('Ошибка: ' + (data.error || 'неизвестная'), 'err');
+					return;
+				}
+				updateApplyStatus(data);
+				updateLog('Информация получена', 'ok');
+				if (data.fw_upgrade_available) {
+					updateLog('Доступен апгрейд firmware RouterBoard: ' + data.current_fw + ' → ' + data.upgrade_fw);
+				}
+			}).catch(e => {
+				updateSetButtonsDisabled(false);
+				updateLog('Ошибка запроса: ' + e, 'err');
+			});
+		}
+
+		function closeUpdateModal() {
+			closeModal('updateModal');
+			updateCurrentDeviceId = null;
+		}
+
+		function updateCheck() {
+			updateLog('Запуск проверки обновлений (это может занять до 10 сек)…');
+			updateSetButtonsDisabled(true);
+			updateAjax('check').then(data => {
+				updateSetButtonsDisabled(false);
+				if (!data.success) {
+					updateLog('Ошибка: ' + (data.error || 'неизвестная'), 'err');
+					return;
+				}
+				updateApplyStatus(data);
+				if (data.ros_update_available) {
+					updateLog('Доступна новая версия: ' + data.latest_version, 'ok');
+				} else {
+					updateLog('Установлена актуальная версия', 'ok');
+				}
+			}).catch(e => {
+				updateSetButtonsDisabled(false);
+				updateLog('Ошибка запроса: ' + e, 'err');
+			});
+		}
+
+		function updateDownload() {
+			if (!confirm('Скачать обновление RouterOS? Устройство скачает пакет, но перезагрузится только после нажатия «Перезагрузить».')) return;
+			updateLog('Скачивание обновления (это может занять до минуты)…');
+			updateSetButtonsDisabled(true);
+			updateAjax('update').then(data => {
+				updateSetButtonsDisabled(false);
+				if (!data.success) {
+					updateLog('Ошибка: ' + (data.error || 'неизвестная'), 'err');
+					return;
+				}
+				if (data.status) {
+					document.getElementById('updStatusRow').style.display = 'flex';
+					document.getElementById('updStatus').textContent = data.status;
+				}
+				updateLog(data.message || 'Обновление скачано', 'ok');
+			}).catch(e => {
+				updateSetButtonsDisabled(false);
+				updateLog('Ошибка запроса: ' + e, 'err');
+			});
+		}
+
+		function updateUpgradeFw() {
+			if (!confirm('Запланировать апгрейд firmware RouterBoard? Апгрейд применится при следующей перезагрузке.')) return;
+			updateLog('Планирование апгрейда firmware…');
+			updateSetButtonsDisabled(true);
+			updateAjax('upgrade_fw').then(data => {
+				updateSetButtonsDisabled(false);
+				if (!data.success) {
+					updateLog('Ошибка: ' + (data.error || 'неизвестная'), 'err');
+					return;
+				}
+				updateLog(data.message || 'Апгрейд запланирован', 'ok');
+			}).catch(e => {
+				updateSetButtonsDisabled(false);
+				updateLog('Ошибка запроса: ' + e, 'err');
+			});
+		}
+
+		function updateReboot() {
+			if (!confirm('Перезагрузить устройство? Оно будет недоступно 1–3 минуты.')) return;
+			updateLog('Отправка команды перезагрузки…');
+			updateSetButtonsDisabled(true);
+			updateAjax('reboot').then(data => {
+				if (!data.success) {
+					updateSetButtonsDisabled(false);
+					updateLog('Ошибка: ' + (data.error || 'неизвестная'), 'err');
+					return;
+				}
+				updateLog(data.message || 'Команда отправлена', 'ok');
+				updateLog('Кнопки заблокированы до закрытия окна', 'ok');
+			}).catch(e => {
+				updateSetButtonsDisabled(false);
+				updateLog('Ошибка запроса: ' + e, 'err');
+			});
 		}
 
 		// Функция для копирования содержимого
