@@ -1,11 +1,13 @@
 <?php
 $deviceStatuses   = [];
 $deviceLastBackup = [];
+$deviceRosVersion = [];
 
 while ($device = $devices->fetchArray(SQLITE3_ASSOC)) {
 	$id = $device['id'];
 	$deviceStatuses[$id]   = hasRecentBackup($db, $id);
 	$deviceLastBackup[$id] = getDeviceLastBackupTime($db, $id);
+	$deviceRosVersion[$id] = getDeviceLastRosVersion($db, $id);
 }
 $devices->reset();
 ?>
@@ -40,6 +42,7 @@ $devices->reset();
 		$id            = $device['id'];
 		$hasBackup     = $deviceStatuses[$id];
 		$lastBackup    = $deviceLastBackup[$id];
+		$rosVersion    = $deviceRosVersion[$id] ?? null;
 		$statusClass   = $hasBackup ? 'online' : 'offline';
 		$statusLabel   = $hasBackup ? 'Бэкап OK' : ($lastBackup ? 'Устарел' : 'Нет бэкапа');
 	?>
@@ -53,9 +56,14 @@ $devices->reset();
 		</div>
 
 		<!-- Model chip -->
-		<?php if (!empty($device['model'])): ?>
-		<div style="margin-bottom:0.625rem;">
-			<span class="device-model-chip"><?= htmlspecialchars($device['model']) ?></span>
+		<?php if (!empty($device['model']) || !empty($rosVersion)): ?>
+		<div style="margin-bottom:0.625rem; display:flex; gap:0.375rem; flex-wrap:wrap;">
+			<?php if (!empty($device['model'])): ?>
+				<span class="device-model-chip"><?= htmlspecialchars($device['model']) ?></span>
+			<?php endif; ?>
+			<?php if (!empty($rosVersion)): ?>
+				<span class="device-model-chip device-model-chip--ros" title="Версия RouterOS на момент последнего бэкапа">RouterOS <?= htmlspecialchars($rosVersion) ?></span>
+			<?php endif; ?>
 		</div>
 		<?php endif; ?>
 
@@ -86,12 +94,12 @@ $devices->reset();
 			<button class="btn btn-outline btn-sm" onclick="testConnection(<?= $id ?>)" title="Проверить подключение">
 				<span class="icon icon-test"></span>
 			</button>
+			<button class="btn btn-outline btn-sm" onclick="openUpdateModal(<?= $id ?>, '<?= htmlspecialchars($device['name'], ENT_QUOTES) ?>')" title="Обновление RouterOS / RouterBoard">
+				<span class="icon icon-update"></span>
+			</button>
 			<button class="btn btn-primary btn-sm" onclick="openBackupModal(<?= $id ?>)" title="Создать бэкап">
 				<span class="icon icon-backup"></span>
 				Бэкап
-			</button>
-			<button class="btn btn-outline btn-sm" onclick="openUpdateModal(<?= $id ?>, '<?= htmlspecialchars($device['name'], ENT_QUOTES) ?>')" title="Обновление RouterOS / RouterBoard">
-				<span class="icon icon-update"></span>
 			</button>
 			<div class="device-card__actions-right">
 				<button class="btn btn-outline btn-sm" onclick="editDevice(<?= $id ?>)" title="Редактировать">
@@ -188,6 +196,11 @@ $devices->reset();
 	border: 1px solid var(--border-light);
 	border-radius: var(--radius-xs);
 	padding: 2px 8px;
+}
+.device-model-chip--ros {
+	color: var(--primary, #3498db);
+	border-color: var(--primary, #3498db);
+	background: transparent;
 }
 
 .device-card__details {

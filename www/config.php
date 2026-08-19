@@ -876,18 +876,37 @@ function hasRecentBackup($db, $deviceId) {
 // Функция для получения времени последнего бэкапа устройства
 function getDeviceLastBackupTime($db, $deviceId) {
 	$stmt = $db->prepare('
-		SELECT created_at 
-		FROM backups 
-		WHERE device_id = ? 
+		SELECT created_at
+		FROM backups
+		WHERE device_id = ?
 		AND filename IS NOT NULL
-		ORDER BY created_at DESC 
+		ORDER BY created_at DESC
 		LIMIT 1
 	');
 	$stmt->bindValue(1, $deviceId, SQLITE3_INTEGER);
 	$result = $stmt->execute();
 	$row = $result->fetchArray(SQLITE3_ASSOC);
-	
+
 	return $row ? $row['created_at'] : null;
+}
+
+// Последняя известная версия RouterOS для устройства (из последнего бэкапа)
+function getDeviceLastRosVersion($db, $deviceId) {
+	$stmt = $db->prepare('
+		SELECT ros_version
+		FROM backups
+		WHERE device_id = ?
+		  AND ros_version IS NOT NULL
+		  AND ros_version != ""
+		  AND ros_version != "Unknown"
+		ORDER BY created_at DESC
+		LIMIT 1
+	');
+	$stmt->bindValue(1, $deviceId, SQLITE3_INTEGER);
+	$result = $stmt->execute();
+	$row = $result->fetchArray(SQLITE3_ASSOC);
+
+	return $row ? $row['ros_version'] : null;
 }
 
 // ─── Email ───────────────────────────────────────────────────────────────────
