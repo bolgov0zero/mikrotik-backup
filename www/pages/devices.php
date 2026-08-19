@@ -43,71 +43,62 @@ $devices->reset();
 		$hasBackup     = $deviceStatuses[$id];
 		$lastBackup    = $deviceLastBackup[$id];
 		$rosVersion    = $deviceRosVersion[$id] ?? null;
-		$statusClass   = $hasBackup ? 'online' : 'offline';
-		$statusLabel   = $hasBackup ? 'Бэкап OK' : ($lastBackup ? 'Устарел' : 'Нет бэкапа');
+		$rosVersionClean = $rosVersion ? trim(preg_replace('/\s*\(.*\)\s*$/', '', $rosVersion)) : null;
+		$statusClass   = $hasBackup ? 'ok' : 'warn';
+		$statusLabel   = $hasBackup ? 'Бэкап ОК' : ($lastBackup ? 'Устарел' : 'Нет бэкапа');
+		$modelText     = !empty($device['model']) ? $device['model'] : '—';
 	?>
 	<div class="device-card">
 
-		<!-- Card header -->
+		<!-- Header: (dot + name + model) | badge -->
 		<div class="device-card__header">
-			<div class="device-card__status-dot device-card__status-dot--<?= $statusClass ?>"></div>
-			<div class="device-card__name"><?= htmlspecialchars($device['name']) ?></div>
-			<div class="device-card__status-badge device-card__status-badge--<?= $statusClass ?>"><?= $statusLabel ?></div>
+			<div class="device-card__header-left">
+				<div class="device-card__title-row">
+					<span class="device-card__dot device-card__dot--<?= $statusClass ?>"></span>
+					<span class="device-card__name"><?= htmlspecialchars($device['name']) ?></span>
+				</div>
+				<span class="device-card__model" title="<?= htmlspecialchars($modelText, ENT_QUOTES) ?>"><?= htmlspecialchars($modelText) ?></span>
+			</div>
+			<span class="device-card__badge device-card__badge--<?= $statusClass ?>"><?= $statusLabel ?></span>
 		</div>
 
-		<!-- Details -->
-		<?php
-			$rosVersionClean = $rosVersion ? trim(preg_replace('/\s*\(.*\)\s*$/', '', $rosVersion)) : null;
-		?>
-		<div class="device-card__details">
-			<div class="device-card__detail">
-				<span class="device-card__detail-label">Адрес</span>
-				<span class="device-card__detail-value"><?= htmlspecialchars($device['ip']) ?>:<?= $device['port'] ?></span>
-			</div>
-			<div class="device-card__detail">
-				<span class="device-card__detail-label">Пользователь</span>
-				<span class="device-card__detail-value"><?= htmlspecialchars($device['username']) ?></span>
-			</div>
-			<div class="device-card__detail">
-				<span class="device-card__detail-label">Последний бэкап</span>
-				<span class="device-card__detail-value device-card__detail-value--<?= $hasBackup ? 'success' : 'danger' ?>">
-					<?= $lastBackup ? formatDbDateTime($lastBackup) : 'Нет данных' ?>
-				</span>
-			</div>
-			<div class="device-card__detail">
-				<span class="device-card__detail-label">Добавлено</span>
-				<span class="device-card__detail-value"><?= formatDbDateTime($device['created_at']) ?></span>
-			</div>
-			<div class="device-card__detail">
-				<span class="device-card__detail-label">Модель</span>
-				<span class="device-card__detail-value"><?= !empty($device['model']) ? htmlspecialchars($device['model']) : '—' ?></span>
-			</div>
-			<div class="device-card__detail">
-				<span class="device-card__detail-label">Версия</span>
-				<span class="device-card__detail-value"><?= $rosVersionClean ? htmlspecialchars($rosVersionClean) : '—' ?></span>
-			</div>
+		<!-- Chips: version, ip:port, username -->
+		<div class="device-card__chips">
+			<?php if ($rosVersionClean): ?>
+				<span class="device-chip font-mono"><?= htmlspecialchars($rosVersionClean) ?></span>
+			<?php endif; ?>
+			<span class="device-chip font-mono"><?= htmlspecialchars($device['ip']) ?>:<?= $device['port'] ?></span>
+			<span class="device-chip"><?= htmlspecialchars($device['username']) ?></span>
+		</div>
+
+		<!-- Last backup line -->
+		<div class="device-card__last-backup">
+			Последний бэкап
+			<?php if ($lastBackup): ?>
+				<span class="device-card__last-backup-date"><?= formatDbDateTime($lastBackup) ?></span>
+			<?php else: ?>
+				<span class="device-card__last-backup-date device-card__last-backup-date--none">нет данных</span>
+			<?php endif; ?>
 		</div>
 
 		<!-- Actions -->
 		<div class="device-card__actions">
-			<button class="btn btn-outline btn-sm" onclick="testConnection(<?= $id ?>)" title="Проверить подключение">
-				<span class="icon icon-test"></span>
+			<button class="device-btn device-btn--icon" onclick="testConnection(<?= $id ?>)" title="Проверить подключение">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
 			</button>
-			<button class="btn btn-outline btn-sm" onclick="openUpdateModal(<?= $id ?>, '<?= htmlspecialchars($device['name'], ENT_QUOTES) ?>')" title="Обновление RouterOS / RouterBoard">
-				<span class="icon icon-update"></span>
+			<button class="device-btn device-btn--icon" onclick="openUpdateModal(<?= $id ?>, '<?= htmlspecialchars($device['name'], ENT_QUOTES) ?>')" title="Обновление RouterOS / RouterBoard">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
 			</button>
-			<button class="btn btn-primary btn-sm" onclick="openBackupModal(<?= $id ?>)" title="Создать бэкап">
-				<span class="icon icon-backup"></span>
+			<button class="device-btn device-btn--primary" onclick="openBackupModal(<?= $id ?>)" title="Создать бэкап">
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
 				Бэкап
 			</button>
-			<div class="device-card__actions-right">
-				<button class="btn btn-outline btn-sm" onclick="editDevice(<?= $id ?>)" title="Редактировать">
-					<span class="icon icon-edit"></span>
-				</button>
-				<button class="btn btn-danger btn-sm" onclick="deleteDevice(<?= $id ?>, '<?= htmlspecialchars($device['name'], ENT_QUOTES) ?>')" title="Удалить">
-					<span class="icon icon-delete"></span>
-				</button>
-			</div>
+			<button class="device-btn device-btn--icon" onclick="editDevice(<?= $id ?>)" title="Редактировать">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+			</button>
+			<button class="device-btn device-btn--icon device-btn--icon-danger" onclick="deleteDevice(<?= $id ?>, '<?= htmlspecialchars($device['name'], ENT_QUOTES) ?>')" title="Удалить">
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+			</button>
 		</div>
 
 	</div>
@@ -126,111 +117,160 @@ $devices->reset();
 
 .devices-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 	gap: var(--spacing-md);
 }
 
+/* ===== Card ===== */
 .device-card {
 	background: var(--bg-card);
-	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	padding: var(--spacing-md) var(--spacing-lg);
+	border: 1px solid var(--border-light);
+	border-radius: 16px;
+	padding: 18px;
 	display: flex;
 	flex-direction: column;
-	gap: 0;
+	gap: 12px;
 	transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .device-card:hover {
-	border-color: var(--border-light);
+	border-color: #333;
 	box-shadow: var(--shadow);
 }
 
+/* ===== Header ===== */
 .device-card__header {
 	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	margin-bottom: 0.625rem;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 10px;
 }
-.device-card__status-dot {
-	width: 8px;
-	height: 8px;
+.device-card__header-left {
+	min-width: 0;
+	flex: 1;
+}
+.device-card__title-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 3px;
+}
+.device-card__dot {
+	width: 7px;
+	height: 7px;
 	border-radius: 50%;
 	flex-shrink: 0;
 }
-.device-card__status-dot--online  { background: var(--success); box-shadow: 0 0 0 2px rgba(39,174,96,.2); }
-.device-card__status-dot--offline { background: var(--danger);  box-shadow: 0 0 0 2px rgba(231,76,60,.2); animation: pulse-dot 2s infinite; }
-
-@keyframes pulse-dot {
-	0%, 100% { box-shadow: 0 0 0 2px rgba(231,76,60,.2); }
-	50%       { box-shadow: 0 0 0 4px rgba(231,76,60,.0); }
-}
-
+.device-card__dot--ok   { background: var(--success); }
+.device-card__dot--warn { background: var(--warning); }
 .device-card__name {
-	font-size: 0.9375rem;
-	font-weight: 700;
 	color: var(--text-primary);
-	flex: 1;
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.device-card__status-badge {
-	font-size: 0.625rem;
+	font-size: 15px;
 	font-weight: 600;
-	padding: 2px 7px;
-	border-radius: 10px;
-	flex-shrink: 0;
-}
-.device-card__status-badge--online  { background: var(--success-bg); color: var(--success); }
-.device-card__status-badge--offline { background: var(--danger-bg);  color: var(--danger); }
-
-.device-card__details {
-	display: flex;
-	flex-direction: column;
-	gap: 0.3125rem;
-	margin-bottom: var(--spacing-md);
-	padding: 0.625rem 0;
-	border-top: 1px solid var(--border);
-	border-bottom: 1px solid var(--border);
-}
-.device-card__detail {
-	display: flex;
-	justify-content: space-between;
-	align-items: baseline;
-	gap: 0.5rem;
-}
-.device-card__detail-label {
-	font-size: 0.6875rem;
-	color: var(--text-muted);
-	flex-shrink: 0;
-}
-.device-card__detail-value {
-	font-size: 0.75rem;
-	color: var(--text-secondary);
-	font-weight: 500;
-	text-align: right;
-	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	min-width: 0;
 }
-.device-card__detail-value--success { color: var(--success); }
-.device-card__detail-value--danger  { color: var(--danger); }
+.device-card__model {
+	display: block;
+	font-size: 11px;
+	color: var(--text-secondary);
+	max-width: 220px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	padding-left: 15px;
+}
 
+/* ===== Badge ===== */
+.device-card__badge {
+	font-size: 10.5px;
+	font-weight: 500;
+	padding: 4px 9px;
+	border-radius: 20px;
+	flex-shrink: 0;
+	line-height: 1;
+}
+.device-card__badge--ok   { background: var(--success-bg); color: var(--success); }
+.device-card__badge--warn { background: var(--warning-bg); color: var(--warning); }
+
+/* ===== Chips ===== */
+.device-card__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+.device-chip {
+	font-size: 10.5px;
+	padding: 4px 8px;
+	border-radius: 6px;
+	background: var(--bg-tertiary);
+	color: var(--text-secondary);
+	line-height: 1.4;
+}
+
+/* ===== Last backup ===== */
+.device-card__last-backup {
+	font-size: 11px;
+	color: var(--text-muted);
+}
+.device-card__last-backup-date {
+	color: var(--success);
+}
+.device-card__last-backup-date--none {
+	color: var(--warning);
+}
+
+/* ===== Actions ===== */
 .device-card__actions {
 	display: flex;
 	align-items: center;
-	gap: 0.375rem;
+	gap: 8px;
+	padding-top: 2px;
 }
-.device-card__actions-right {
-	display: flex;
-	gap: 0.25rem;
-	margin-left: auto;
+.device-btn {
+	height: 30px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 8px;
+	border: 1px solid var(--border-light);
+	background: transparent;
+	color: var(--text-secondary);
+	cursor: pointer;
+	font-family: inherit;
+	transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+	padding: 0;
+}
+.device-btn--icon {
+	width: 30px;
+	flex-shrink: 0;
+}
+.device-btn--icon:hover {
+	border-color: #444;
+	color: var(--text-primary);
+}
+.device-btn--icon-danger { color: var(--text-muted); }
+.device-btn--icon-danger:hover {
+	border-color: var(--danger);
+	color: var(--danger);
+}
+.device-btn--primary {
+	flex: 1;
+	gap: 6px;
+	background: var(--accent);
+	border: none;
+	color: #ffffff;
+	font-size: 12px;
+	font-weight: 500;
+	padding: 0 12px;
+}
+.device-btn--primary:hover {
+	background: var(--accent-hover);
+	color: #ffffff;
 }
 
-/* Empty state icon */
+/* Empty state */
 .empty-state-icon {
 	display: flex;
 	justify-content: center;
