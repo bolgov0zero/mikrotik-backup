@@ -85,7 +85,6 @@ $devices->reset();
 		<div class="device-card__actions">
 			<button class="btn btn-outline btn-sm" onclick="testConnection(<?= $id ?>)" title="Проверить подключение">
 				<span class="icon icon-test"></span>
-				Тест
 			</button>
 			<button class="btn btn-primary btn-sm" onclick="openBackupModal(<?= $id ?>)" title="Создать бэкап">
 				<span class="icon icon-backup"></span>
@@ -93,7 +92,6 @@ $devices->reset();
 			</button>
 			<button class="btn btn-outline btn-sm" onclick="openUpdateModal(<?= $id ?>, '<?= htmlspecialchars($device['name'], ENT_QUOTES) ?>')" title="Обновление RouterOS / RouterBoard">
 				<span class="icon icon-update"></span>
-				Обновление
 			</button>
 			<div class="device-card__actions-right">
 				<button class="btn btn-outline btn-sm" onclick="editDevice(<?= $id ?>)" title="Редактировать">

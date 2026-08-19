@@ -38,7 +38,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'update_action') {
 
 	$deviceId   = intval($_POST['device_id'] ?? 0);
 	$actionType = $_POST['action_type'] ?? '';
-	$device     = getDeviceById($db, $deviceId);
+
+	// Прямой SELECT (getDeviceById вырезает пароль ради безопасности JSON-ответа)
+	$stmt = $db->prepare('SELECT * FROM devices WHERE id = ?');
+	$stmt->bindValue(1, $deviceId, SQLITE3_INTEGER);
+	$device = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
 
 	if (!$device) {
 		echo json_encode(['success' => false, 'error' => 'Устройство не найдено']);
