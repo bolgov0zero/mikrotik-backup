@@ -62,6 +62,10 @@ function activityLabel($type) {
 		'telegram_test'          => 'Telegram проверен',
 		'email_save'             => 'Email настроен',
 		'email_test'             => 'Email проверен',
+		'device_update_check'    => 'Проверка обновлений',
+		'device_update_download' => 'Загрузка обновления',
+		'device_update_fw'       => 'Апгрейд firmware',
+		'device_update_reboot'   => 'Перезагрузка устройства',
 		default                  => $type,
 	};
 }
